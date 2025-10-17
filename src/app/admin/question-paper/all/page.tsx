@@ -13,6 +13,7 @@ export default function AllQuestionPaperPage() {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [examIdsWithQuestions, setExamIdsWithQuestions] = useState<number[]>([]);
 
   const [search, setSearch] = useState<string>("");
   const [fCat, setFCat] = useState<string>("");
@@ -21,30 +22,35 @@ export default function AllQuestionPaperPage() {
   const [fExam, setFExam] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [catRes, subRes, subjRes, examRes, examIdsRes] = await Promise.all([
+        fetch(API_BASE + "admin/category"),
+        fetch(API_BASE + "admin/subcategory"),
+        fetch(API_BASE + "admin/subject"),
+        fetch(API_BASE + "admin/exam"),
+        fetch(API_BASE + "admin/exams-with-questions") // Optimized endpoint
+      ]);
+      const [cats, subs, subjs, exms, examIds] = await Promise.all([
+        catRes.json(), subRes.json(), subjRes.json(), examRes.json(), examIdsRes.json()
+      ]);
+      setCategories(Array.isArray(cats) ? cats : []);
+      setSubcategories(Array.isArray(subs) ? subs : []);
+      setSubjects(Array.isArray(subjs) ? subjs : []);
+      setExams(Array.isArray(exms) ? exms : []);
+      setExamIdsWithQuestions(Array.isArray(examIds) ? examIds : []);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const [catRes, subRes, subjRes, examRes] = await Promise.all([
-          fetch(API_BASE + "admin/category"),
-          fetch(API_BASE + "admin/subcategory"),
-          fetch(API_BASE + "admin/subject"),
-          fetch(API_BASE + "admin/exam")
-        ]);
-        const [cats, subs, subjs, exms] = await Promise.all([
-          catRes.json(), subRes.json(), subjRes.json(), examRes.json()
-        ]);
-        setCategories(Array.isArray(cats) ? cats : []);
-        setSubcategories(Array.isArray(subs) ? subs : []);
-        setSubjects(Array.isArray(subjs) ? subjs : []);
-        setExams(Array.isArray(exms) ? exms : []);
-      } catch (e: any) {
-        setError(e?.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadData();
   }, []);
 
   const categoryMap = useMemo(() => Object.fromEntries(categories.map(c => [c.category_id, c.name])), [categories]);
@@ -54,8 +60,14 @@ export default function AllQuestionPaperPage() {
   const subjectSubcatMap = useMemo(() => Object.fromEntries(subjects.map(su => [su.subject_id, su.subcategory_id])), [subjects]);
   const subcatCatMap = useMemo(() => Object.fromEntries(subcategories.map(sc => [sc.subcategory_id, sc.category_id])), [subcategories]);
 
+  // Get exams that have questions (using the optimized exam IDs list)
+  const examsWithQuestions = useMemo(() => {
+    const examIdsSet = new Set(examIdsWithQuestions);
+    return exams.filter(e => examIdsSet.has(e.exam_id));
+  }, [exams, examIdsWithQuestions]);
+
   const filtered = useMemo(() => {
-    let list = exams;
+    let list = examsWithQuestions;
     if (search) {
       const s = search.toLowerCase();
       list = list.filter(e => e.name.toLowerCase().includes(s));
@@ -65,7 +77,38 @@ export default function AllQuestionPaperPage() {
     if (fCat) list = list.filter(e => String(subcatCatMap[subjectSubcatMap[e.subject_id]]) === fCat);
     if (fExam) list = list.filter(e => String(e.exam_id) === fExam);
     return list;
-  }, [exams, search, fExam, fSubj, fSub, fCat, subjectSubcatMap, subcatCatMap]);
+  }, [examsWithQuestions, search, fExam, fSubj, fSub, fCat, subjectSubcatMap, subcatCatMap]);
+
+  const handleDeleteQuestions = async (examId: number, examName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete all questions for "${examName}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setDeleting(examId);
+      const res = await fetch(`${API_BASE}admin/questions/exam/${examId}`, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to delete questions");
+      }
+      
+      alert("All questions deleted successfully!");
+      // Optimized: Only refetch exam IDs instead of all data
+      const examIdsRes = await fetch(API_BASE + "admin/exams-with-questions");
+      const examIds = await examIdsRes.json();
+      setExamIdsWithQuestions(Array.isArray(examIds) ? examIds : []);
+    } catch (err: any) {
+      setError(err?.message || "Failed to delete questions");
+      alert("Error: " + (err?.message || "Failed to delete questions"));
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto text-gray-900">
@@ -126,7 +169,16 @@ export default function AllQuestionPaperPage() {
                     <td className="px-3 py-2">{subcategoryMap[subcatId]}</td>
                     <td className="px-3 py-2">{categoryMap[catId]}</td>
                     <td className="px-3 py-2">
-                      <Link className="text-blue-600 underline" href={`/admin/question-paper/exam/${exId}/edit`}>Edit</Link>
+                      <div className="flex gap-2 items-center">
+                        <Link className="text-blue-600 underline" href={`/admin/question-paper/exam/${exId}/edit`}>Edit</Link>
+                        <button
+                          onClick={() => handleDeleteQuestions(exId, e.name)}
+                          disabled={deleting === exId}
+                          className="text-red-600 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deleting === exId ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

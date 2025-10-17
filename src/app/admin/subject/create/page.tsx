@@ -59,13 +59,11 @@ export default function CreateSubjectPage() {
     e.preventDefault();
     setLoading(true); setError(null); setSuccess(null);
     try {
-      const token = localStorage.getItem("auth_token");
-      if(!token) throw new Error("Please login to continue");
       if(!formData.subcategory_id) throw new Error("Please select a subcategory");
 
       const response = await fetch(API_BASE + "admin/subject", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: formData.name, subcategory_id: parseInt(formData.subcategory_id) })
       });
       if(!response.ok){
