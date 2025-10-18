@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE } from "@/lib/api";
 
 // Admin login page - separate from admin panel layout
 export default function AdminLoginPage(){
@@ -25,7 +26,7 @@ export default function AdminLoginPage(){
     setLoading(true);
     
     try {
-      const res = await fetch("http://localhost:3000/api/auth/admin/login", {
+      const res = await fetch(API_BASE + "auth/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
