@@ -37,7 +37,7 @@ export default function Home() {
               Student Portal
             </h2>
             <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
-              We're working hard to bring you an amazing Olympiad experience. 
+              We&apos;re working hard to bring you an amazing Olympiad experience. 
               Our student portal will be live soon with exciting features!
             </p>
           </div>
