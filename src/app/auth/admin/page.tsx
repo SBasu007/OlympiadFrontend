@@ -40,7 +40,6 @@ export default function AdminLoginPage(){
       
   // Store the token in sessionStorage (tab-lifetime)
   sessionStorage.setItem("auth_token", data.token);
-      console.log("Login successful, token stored:", data.token);
       
       // Redirect to admin dashboard
       router.replace("/admin");
