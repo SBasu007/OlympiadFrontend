@@ -124,6 +124,17 @@ export default function CreateQuestionPaperPage() {
     }
     try {
       setLoading(true);
+      
+      // Check if questions already exist for this exam
+      const checkRes = await fetch(`${API_BASE}admin/questions?exam_id=${selectedExam}`);
+      const existingQuestions = await checkRes.json();
+      
+      if (Array.isArray(existingQuestions) && existingQuestions.length > 0) {
+        setError("Question Set already exists, go to all question paper to edit the existing paper or delete and recreate it.");
+        setLoading(false);
+        return;
+      }
+      
       // Fetch exam details to get number of questions
       const res = await fetch(`${API_BASE}admin/exam/${selectedExam}`);
       const detail: ExamDetail = await res.json();
