@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { API_BASE } from "@/lib/api";
 
 interface Category {
   category_id: number;
@@ -23,7 +24,7 @@ export default function CreateSubcategoryPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/admin/category");
+        const response = await fetch(`${API_BASE}admin/category`);
         if (response.ok) {
           const data = await response.json();
           setCategories(data);
@@ -79,7 +80,7 @@ export default function CreateSubcategoryPage() {
         submitFormData.append("file", formData.image);
       }
 
-      const response = await fetch("http://localhost:3000/api/admin/subcategory", {
+      const response = await fetch(API_BASE + "admin/subcategory", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
