@@ -7,6 +7,8 @@ type Question = { question_id: number; exam_id: number; question: string; option
 
 type QuestionDraft = { text: string; options: string[]; correctOption?: number; file?: File | null; question_id?: number; image_url?: string | null };
 
+type OriginalQuestion = { text: string; options: string[]; correctOption?: number; image_url?: string | null };
+
 type Exam = { exam_id: number; name: string };
 
 export default function EditExamPaperPage(){
@@ -17,6 +19,10 @@ export default function EditExamPaperPage(){
   const [error, setError] = useState<string|null>(null);
   const [exam, setExam] = useState<Exam| null>(null);
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
+  const [originalQuestions, setOriginalQuestions] = useState<OriginalQuestion[]>([]);
+  const [updatingQuestions, setUpdatingQuestions] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [updatedCount, setUpdatedCount] = useState(0);
 
   useEffect(() => {
     if(!id) return;
@@ -77,6 +83,15 @@ export default function EditExamPaperPage(){
           } as QuestionDraft;
         });
         setQuestions(drafts);
+        
+        // Store original state for change detection
+        const originals: OriginalQuestion[] = drafts.map(d => ({
+          text: d.text,
+          options: [...d.options],
+          correctOption: d.correctOption,
+          image_url: d.image_url,
+        }));
+        setOriginalQuestions(originals);
       }catch(e:any){
         setError(e?.message || 'Failed to load exam or questions');
       }finally{
@@ -85,15 +100,48 @@ export default function EditExamPaperPage(){
     })();
   },[id]);
 
+  // Helper function to check if a question was modified
+  const isQuestionModified = (current: QuestionDraft, original: OriginalQuestion, index: number): boolean => {
+    // Check if text changed
+    if (current.text !== original.text) return true;
+    
+    // Check if correct option changed
+    if (current.correctOption !== original.correctOption) return true;
+    
+    // Check if options changed (deep comparison)
+    if (current.options.length !== original.options.length) return true;
+    for (let i = 0; i < current.options.length; i++) {
+      if (current.options[i] !== original.options[i]) return true;
+    }
+    
+    // Check if a new file was added
+    if (current.file) return true;
+    
+    return false;
+  };
+
   const save = async () => {
     setError(null);
     try{
+      setUpdatingQuestions(true);
       setLoading(true);
-      for(const q of questions){
+      
+      let updateCount = 0;
+      
+      for(let idx = 0; idx < questions.length; idx++){
+        const q = questions[idx];
         if(!q.question_id){
           // skipping creation of new questions in this pass
           continue;
         }
+        
+        // Check if this question was modified
+        const original = originalQuestions[idx];
+        if (!original || !isQuestionModified(q, original, idx)) {
+          // Skip unchanged questions
+          continue;
+        }
+        
         const form = new FormData();
         form.append('question_text', q.text);
         form.append('options', JSON.stringify(q.options));
@@ -103,15 +151,40 @@ export default function EditExamPaperPage(){
           // Prefer sending the actual option string (matches backend storage model), fallback to index string
           form.append('correct_option', typeof val === 'string' ? val : String(idx));
         }
+        
+        // Only append file if a new one was selected
         if(q.file) form.append('file', q.file);
+        
         const res = await fetch(`${API_BASE}admin/questions/${q.question_id}`, { method:'PUT', body: form });
         if(!res.ok){
           const err = await res.json().catch(()=>({message:'Failed'}));
           throw new Error(err?.message || 'Failed to save');
         }
+        
+        updateCount++;
       }
-      alert('Saved');
+      
+      // Update original questions to current state after successful save
+      const newOriginals: OriginalQuestion[] = questions.map(d => ({
+        text: d.text,
+        options: [...d.options],
+        correctOption: d.correctOption,
+        image_url: d.image_url,
+      }));
+      setOriginalQuestions(newOriginals);
+      
+      // Show success popup
+      setUpdatedCount(updateCount);
+      setUpdatingQuestions(false);
+      setShowSuccessPopup(true);
+      
+      // Auto-hide success popup after 5 seconds
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 5000);
+      
     }catch(e:any){
+      setUpdatingQuestions(false);
       setError(e?.message || 'Failed to save');
     }finally{
       setLoading(false);
@@ -120,6 +193,48 @@ export default function EditExamPaperPage(){
 
   return (
     <div className="max-w-4xl mx-auto text-gray-900">
+      {/* Loading Overlay */}
+      {updatingQuestions && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center space-y-4 animate-scale-in">
+            <div className="w-16 h-16 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+            <div className="text-xl font-semibold text-gray-800">Updating Questions...</div>
+            <div className="text-sm text-gray-600">Please wait while we save your changes</div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-8 shadow-2xl max-w-md w-full mx-4 animate-scale-in">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">Update Successful!</h3>
+              <p className="text-gray-600 text-center">
+                {updatedCount > 0 ? (
+                  <>
+                    Successfully updated <span className="font-semibold text-green-600">{updatedCount}</span> of {questions.length} question{updatedCount !== 1 ? 's' : ''}
+                  </>
+                ) : (
+                  <>No changes were detected</>
+                )}
+              </p>
+              <button
+                onClick={() => setShowSuccessPopup(false)}
+                className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-semibold mb-4">Edit Exam Question Paper</h1>
       {error && <div className="mb-3 p-3 rounded bg-red-50 text-red-700 border border-red-200">{error}</div>}
       <div className="mb-4">Exam: {exam?.name || id}</div>

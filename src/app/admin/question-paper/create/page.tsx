@@ -26,6 +26,9 @@ export default function CreateQuestionPaperPage() {
   const [builderExamName, setBuilderExamName] = useState<string>("");
   const [examQuestionsCount, setExamQuestionsCount] = useState<number>(0);
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
+  const [uploadingQuestions, setUploadingQuestions] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [uploadedCount, setUploadedCount] = useState(0);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -172,37 +175,134 @@ export default function CreateQuestionPaperPage() {
   )), [exams]);
 
   const handleSaveQuestions = async () => {
-  try {
-    setLoading(true);
+    try {
+      setUploadingQuestions(true);
+      setLoading(true);
 
-    for (const q of questions) {
+      // ============================================================
+      // SINGLE QUESTION UPLOAD (COMMENTED OUT - OLD APPROACH)
+      // ============================================================
+      /*
+      for (const q of questions) {
+        const formData = new FormData();
+        formData.append("exam_id", selectedExam);
+        formData.append("question_text", q.text);
+        formData.append("options", JSON.stringify(q.options));
+        const correctValue = typeof q.correctOption === 'number' && q.options[q.correctOption] !== undefined
+          ? q.options[q.correctOption]
+          : '';
+        formData.append("correct_option", correctValue);
+        if (q.file) formData.append("file", q.file);
+
+        await fetch(`${API_BASE}admin/upload-questions`, {
+          method: "POST",
+          body: formData,
+        });
+      }
+      */
+
+      // ============================================================
+      // BATCH UPLOAD (NEW APPROACH)
+      // ============================================================
       const formData = new FormData();
+      
+      // Add exam_id
       formData.append("exam_id", selectedExam);
-      formData.append("question_text", q.text);
-      formData.append("options", JSON.stringify(q.options));
-      const correctValue = typeof q.correctOption === 'number' && q.options[q.correctOption] !== undefined
-        ? q.options[q.correctOption]
-        : '';
-      formData.append("correct_option", correctValue);
-      if (q.file) formData.append("file", q.file);
+      
+      // Prepare questions data array (without files)
+      const questionsData = questions.map((q, idx) => {
+        const correctValue = typeof q.correctOption === 'number' && q.options[q.correctOption] !== undefined
+          ? q.options[q.correctOption]
+          : '';
+        
+        return {
+          question_text: q.text,
+          options: q.options,
+          correct_option: correctValue,
+          hasFile: !!q.file,
+          fileIndex: q.file ? idx : null
+        };
+      });
+      
+      // Add questions data as JSON string
+      formData.append("questions", JSON.stringify(questionsData));
+      
+      // Add files with indexed keys
+      questions.forEach((q, idx) => {
+        if (q.file) {
+          formData.append(`file_${idx}`, q.file);
+        }
+      });
 
-      await fetch(`${API_BASE}admin/upload-questions`, {
+      const response = await fetch(`${API_BASE}admin/upload-questions-batch`, {
         method: "POST",
         body: formData,
       });
-    }
 
-    alert("All questions uploaded successfully!");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to upload questions");
-  } finally {
-    setLoading(false);
-  }
-};
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to upload questions");
+      }
+
+      const result = await response.json();
+      
+      // Show success popup
+      setUploadedCount(result.uploaded || questions.length);
+      setUploadingQuestions(false);
+      setShowSuccessPopup(true);
+      
+      // Auto-hide success popup after 5 seconds
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 5000);
+      
+    } catch (err) {
+      console.error(err);
+      setUploadingQuestions(false);
+      alert(`Failed to upload questions: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto text-gray-900">
+      {/* Loading Overlay */}
+      {uploadingQuestions && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center space-y-4 animate-scale-in">
+            <div className="w-16 h-16 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+            <div className="text-xl font-semibold text-gray-800">Uploading Questions...</div>
+            <div className="text-sm text-gray-600">Please wait while we save your questions</div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-8 shadow-2xl max-w-md w-full mx-4 animate-scale-in">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">Upload Successful!</h3>
+              <p className="text-gray-600 text-center">
+                Successfully uploaded <span className="font-semibold text-green-600">{uploadedCount}</span> question{uploadedCount !== 1 ? 's' : ''}
+              </p>
+              <button
+                onClick={() => setShowSuccessPopup(false)}
+                className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg p-6 text-white mb-6">
         <h1 className="text-3xl font-bold mb-2">Set Question Paper</h1>
         <p className="text-orange-100">Select the hierarchy to set questions for a specific exam.</p>
