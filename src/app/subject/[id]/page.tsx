@@ -1,8 +1,9 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 interface Exam {
   exam_id: number;
@@ -28,11 +29,14 @@ interface Subject {
 
 export default function SubjectPage() {
   const params = useParams();
+  const router = useRouter();
+  const { user, token, isAuthenticated, logout } = useAuth();
   const subjectId = params.id as string;
   
   const [exams, setExams] = useState<Exam[]>([]);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,7 +45,7 @@ export default function SubjectPage() {
         
         // Fetch subject details
         const subjectResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/admin/subject/${subjectId}`
+          `${process.env.NEXT_PUBLIC_API_BASE}admin/subject/${subjectId}`
         );
         if (subjectResponse.ok) {
           const subjectData = await subjectResponse.json();
@@ -50,11 +54,38 @@ export default function SubjectPage() {
 
         // Fetch exams for this subject
         const examsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/admin/exam?subjectId=${subjectId}`
+          `${process.env.NEXT_PUBLIC_API_BASE}admin/exam?subjectId=${subjectId}`
         );
         if (examsResponse.ok) {
           const examsData = await examsResponse.json();
           setExams(examsData);
+          
+          // Check enrollment status for each exam if user is authenticated
+          if (isAuthenticated && user?.user_id) {
+            const statusPromises = examsData.map(async (exam: Exam) => {
+              try {
+                const response = await fetch(
+                  `${process.env.NEXT_PUBLIC_API_BASE}student/enrollment/${exam.exam_id}/${user.user_id}`
+                );
+                if (response.ok) {
+                  const data = await response.json();
+                  return { exam_id: exam.exam_id, enrolled: data.enrolled };
+                }
+                return { exam_id: exam.exam_id, enrolled: false };
+              } catch (err) {
+                console.error(`Error checking enrollment for exam ${exam.exam_id}:`, err);
+                return { exam_id: exam.exam_id, enrolled: false };
+              }
+            });
+            
+            const statusResults = await Promise.all(statusPromises);
+            const statusMap = statusResults.reduce((acc, { exam_id, enrolled }) => {
+              acc[exam_id] = enrolled;
+              return acc;
+            }, {} as Record<number, boolean>);
+            
+            setEnrollmentStatus(statusMap);
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -66,7 +97,7 @@ export default function SubjectPage() {
     if (subjectId) {
       fetchData();
     }
-  }, [subjectId]);
+  }, [subjectId, isAuthenticated, user]);
 
   const isExpired = (endDate: string) => {
     const end = new Date(endDate);
@@ -82,7 +113,17 @@ export default function SubjectPage() {
       day: 'numeric' 
     });
   };
+const handleApplyClick = (examId: number) => {
+    if (!isAuthenticated) {
+      // Redirect to login if not authenticated
+      router.push('/auth/login');
+    } else {
+      // Redirect to payment page with exam_id
+      router.push(`/exam/${examId}/apply`);
+    }
+  };
 
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Navbar />
@@ -116,7 +157,7 @@ export default function SubjectPage() {
 
         {/* Exams List */}
         {!loading && exams.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {exams.map((exam) => {
               const expired = isExpired(exam.end_date);
               
@@ -125,18 +166,18 @@ export default function SubjectPage() {
                   key={exam.exam_id}
                   className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
                 >
-                  <div className="p-6 sm:p-8">
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                  <div className="p-5 sm:p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                       {/* Left Section - Content */}
-                      <div className="flex-1 space-y-4">
+                      <div className="flex-1 space-y-3">
                         {/* Exam Name */}
-                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                           {exam.name}
                         </h2>
 
                         {/* Description */}
                         {exam.description && (
-                          <p className="text-gray-600 leading-relaxed">
+                          <p className="text-sm text-gray-600 leading-relaxed">
                             {exam.description}
                           </p>
                         )}
@@ -145,7 +186,7 @@ export default function SubjectPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                           {/* Fees */}
                           {exam.fees !== undefined && exam.fees !== null && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -160,7 +201,7 @@ export default function SubjectPage() {
 
                           {/* Duration */}
                           {exam.duration && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -175,7 +216,7 @@ export default function SubjectPage() {
 
                           {/* Number of Questions */}
                           {exam.num_of_ques && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                 <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -190,7 +231,7 @@ export default function SubjectPage() {
 
                           {/* Type */}
                           {exam.type && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <div className="flex-shrink-0 w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                                 <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -237,18 +278,26 @@ export default function SubjectPage() {
                         {expired ? (
                           <button
                             disabled
-                            className="w-full px-6 py-4 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed opacity-75"
+                            className="w-full px-6 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed opacity-75"
                           >
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-sm">Expired on</span>
                               <span className="text-xs">{formatDate(exam.end_date)}</span>
                             </div>
                           </button>
+                        ) : enrollmentStatus[exam.exam_id] ? (
+                          <button
+                            disabled
+                            className="w-full px-6 py-3 bg-[#007bff] text-white font-semibold rounded-lg cursor-not-allowed"
+                          >
+                            Already Enrolled
+                          </button>
                         ) : (
                           <button
-                            className="w-full px-6 py-4 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                            onClick={() => handleApplyClick(exam.exam_id)}
+                            className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                           >
-                            Apply Now
+                            {isAuthenticated ? 'Apply Now' : 'Login to Apply'}
                           </button>
                         )}
                       </div>

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 interface SubCategory {
   subcategory_id: number;
@@ -10,20 +11,36 @@ interface SubCategory {
   cat_img_url?: string;
 }
 
+interface EnrolledExam {
+  exam_id: number;
+  name: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  subject_id: number;
+  enrollment_status?: string;
+}
+
 export default function Navbar() {
   const router = useRouter();
+  const { user, logout, isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stateLevelOpen, setStateLevelOpen] = useState(false);
   const [nationalLevelOpen, setNationalLevelOpen] = useState(false);
+  const [enrolledExamsOpen, setEnrolledExamsOpen] = useState(false);
   const [stateLevelSubCategories, setStateLevelSubCategories] = useState<SubCategory[]>([]);
   const [nationalLevelSubCategories, setNationalLevelSubCategories] = useState<SubCategory[]>([]);
+  const [enrolledExams, setEnrolledExams] = useState<EnrolledExam[]>([]);
   const [stateLevelLoaded, setStateLevelLoaded] = useState(false);
   const [nationalLevelLoaded, setNationalLevelLoaded] = useState(false);
+  const [enrolledExamsLoaded, setEnrolledExamsLoaded] = useState(false);
 
   const stateLevelRef = useRef<HTMLDivElement>(null);
   const nationalLevelRef = useRef<HTMLDivElement>(null);
+  const enrolledExamsRef = useRef<HTMLDivElement>(null);
   const mobileStateLevelRef = useRef<HTMLDivElement>(null);
   const mobileNationalLevelRef = useRef<HTMLDivElement>(null);
+  const mobileEnrolledExamsRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -45,6 +62,15 @@ export default function Navbar() {
       if (!clickedInsideNationalLevel) {
         setNationalLevelOpen(false);
       }
+
+      // Close Enrolled Exams if clicked outside both desktop and mobile refs
+      const clickedInsideEnrolledExams = 
+        (enrolledExamsRef.current && enrolledExamsRef.current.contains(event.target as Node)) ||
+        (mobileEnrolledExamsRef.current && mobileEnrolledExamsRef.current.contains(event.target as Node));
+      
+      if (!clickedInsideEnrolledExams) {
+        setEnrolledExamsOpen(false);
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -58,7 +84,7 @@ export default function Navbar() {
     if (stateLevelOpen && !stateLevelLoaded) {
       const fetchStateLevelSubCategories = async () => {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/admin/subcategory?category_id=5`);
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}admin/subcategory?category_id=5`);
           if (response.ok) {
             const data = await response.json();
             setStateLevelSubCategories(data);
@@ -80,7 +106,7 @@ export default function Navbar() {
     if (nationalLevelOpen && !nationalLevelLoaded) {
       const fetchNationalLevelSubCategories = async () => {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/admin/subcategory?category_id=6`);
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}admin/subcategory?category_id=6`);
           if (response.ok) {
             const data = await response.json();
             setNationalLevelSubCategories(data);
@@ -96,6 +122,28 @@ export default function Navbar() {
       fetchNationalLevelSubCategories();
     }
   }, [nationalLevelOpen, nationalLevelLoaded]);
+
+  // Fetch enrolled exams when opened and user is authenticated
+  useEffect(() => {
+    if (enrolledExamsOpen && !enrolledExamsLoaded && isAuthenticated && user?.user_id) {
+      const fetchEnrolledExams = async () => {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}student/enrolled-exams/${user.user_id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setEnrolledExams(data);
+            setEnrolledExamsLoaded(true);
+          } else {
+            console.error("Failed to fetch enrolled exams");
+          }
+        } catch (error) {
+          console.error("Error fetching enrolled exams:", error);
+        }
+      };
+
+      fetchEnrolledExams();
+    }
+  }, [enrolledExamsOpen, enrolledExamsLoaded, isAuthenticated, user]);
 
   return (
     <nav className="bg-[#253b70] text-white shadow-lg">
@@ -114,11 +162,11 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="hover:text-gray-300 transition-colors">
+          <div className="hidden md:flex items-center space-x-6">
+            <Link href="/" className="text-sm hover:text-gray-300 transition-colors">
               Home
             </Link>
-            <Link href="/about" className="hover:text-gray-300 transition-colors">
+            <Link href="/about" className="text-sm hover:text-gray-300 transition-colors">
               About
             </Link>
             
@@ -126,7 +174,7 @@ export default function Navbar() {
             <div className="relative group" ref={stateLevelRef}>
               <button
                 onClick={() => setStateLevelOpen(!stateLevelOpen)}
-                className="hover:text-gray-300 transition-colors flex items-center gap-1"
+                className="text-sm hover:text-gray-300 transition-colors flex items-center gap-1"
                 aria-haspopup="menu"
                 aria-expanded={stateLevelOpen}
               >
@@ -162,7 +210,7 @@ export default function Navbar() {
             <div className="relative group" ref={nationalLevelRef}>
               <button
                 onClick={() => setNationalLevelOpen(!nationalLevelOpen)}
-                className="hover:text-gray-300 transition-colors flex items-center gap-1"
+                className="text-sm hover:text-gray-300 transition-colors flex items-center gap-1"
                 aria-haspopup="menu"
                 aria-expanded={nationalLevelOpen}
               >
@@ -194,28 +242,86 @@ export default function Navbar() {
               )}
             </div>
 
-            <Link href="/exams" className="hover:text-gray-300 transition-colors">
+            {/* Enrolled Exams Dropdown - Only for authenticated users */}
+            {isAuthenticated && (
+              <div className="relative group" ref={enrolledExamsRef}>
+                <button
+                  onClick={() => setEnrolledExamsOpen(!enrolledExamsOpen)}
+                  className="text-sm hover:text-gray-300 transition-colors flex items-center gap-1"
+                  aria-haspopup="menu"
+                  aria-expanded={enrolledExamsOpen}
+                >
+                  Enrolled Exams
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {enrolledExamsOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 py-2 max-h-96 overflow-y-auto z-50">
+                    {enrolledExamsLoaded && enrolledExams.length > 0 ? (
+                      enrolledExams.map((exam) => (
+                        <Link
+                          key={exam.exam_id}
+                          href={`/exam/${exam.exam_id}`}
+                          className="block px-4 py-2 hover:bg-blue-50 transition-colors"
+                          onClick={() => setEnrolledExamsOpen(false)}
+                        >
+                          {exam.name}
+                        </Link>
+                      ))
+                    ) : enrolledExamsLoaded && enrolledExams.length === 0 ? (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        No enrolled exams yet
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        Loading...
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Link href="/exams" className="text-sm hover:text-gray-300 transition-colors">
               Exams
             </Link>
-            <Link href="/contact" className="hover:text-gray-300 transition-colors">
+            <Link href="/contact" className="text-sm hover:text-gray-300 transition-colors">
               Contact
             </Link>
           </div>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/auth/login"
-              className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
-            >
-              Login
-            </Link>
-            <Link
-              href="/auth/register"
-              className="px-4 py-2 bg-white text-[#253b70] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-            >
-              Register
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="text-white text-sm">
+                  Hello, {user?.name || 'User'}
+                </span>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 bg-white text-[#253b70] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="px-4 py-2 bg-white text-[#253b70] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -342,6 +448,55 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* Enrolled Exams Dropdown Mobile - Only for authenticated users */}
+            {isAuthenticated && (
+              <div ref={mobileEnrolledExamsRef}>
+                <button
+                  onClick={() => setEnrolledExamsOpen(!enrolledExamsOpen)}
+                  className="w-full flex items-center justify-between px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                  aria-expanded={enrolledExamsOpen}
+                >
+                  <span>Enrolled Exams</span>
+                  <svg 
+                    className={`w-4 h-4 transform transition-transform ${enrolledExamsOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {enrolledExamsOpen && (
+                  <div className="mt-1 ml-4 space-y-1 bg-white/5 rounded-lg p-2 max-h-[70vh] overflow-y-auto">
+                    {enrolledExamsLoaded && enrolledExams.length > 0 ? (
+                      enrolledExams.map((exam) => (
+                        <Link
+                          key={exam.exam_id}
+                          href={`/exam/${exam.exam_id}`}
+                          className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-colors text-sm"
+                          onClick={() => {
+                            setEnrolledExamsOpen(false);
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          {exam.name}
+                        </Link>
+                      ))
+                    ) : enrolledExamsLoaded && enrolledExams.length === 0 ? (
+                      <div className="px-4 py-2 text-gray-300 text-sm">
+                        No enrolled exams yet
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2 text-gray-300 text-sm">
+                        Loading...
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <Link
               href="/exams"
               className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -357,20 +512,39 @@ export default function Navbar() {
               Contact
             </Link>
             <div className="pt-2 space-y-2">
-              <Link
-                href="/auth/login"
-                className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Login
-              </Link>
-              <Link
-                href="/auth/register"
-                className="block px-4 py-2 bg-white text-[#253b70] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Register
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <div className="px-4 py-2 text-white text-sm">
+                    Hello, {user?.name || 'User'}
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 bg-white text-[#253b70] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="block px-4 py-2 bg-white text-[#253b70] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -34,7 +34,7 @@ export default function SubcategoryPage() {
         
         // Fetch subjects
         const subjectsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/admin/subject?subcid=${subcategoryId}`
+          `${process.env.NEXT_PUBLIC_API_BASE}admin/subject?subcid=${subcategoryId}`
         );
         if (subjectsResponse.ok) {
           const subjectsData = await subjectsResponse.json();
@@ -43,7 +43,7 @@ export default function SubcategoryPage() {
 
         // Fetch subcategory details
         const subcategoryResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}/admin/subcategory/${subcategoryId}`
+          `${process.env.NEXT_PUBLIC_API_BASE}admin/subcategory/${subcategoryId}`
         );
         if (subcategoryResponse.ok) {
           const subcategoryData = await subcategoryResponse.json();
@@ -78,13 +78,13 @@ export default function SubcategoryPage() {
         </nav> */}
 
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           {categoryName && (
-            <div className="inline-flex items-center gap-2 mb-3 px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+            <div className="inline-flex items-center gap-2 mb-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
               {categoryName}
             </div>
           )}
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             {subcategory?.name || "Loading..."}
           </h1>
         </div>
@@ -98,16 +98,16 @@ export default function SubcategoryPage() {
 
         {/* Subjects Grid */}
         {!loading && subjects.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {subjects.map((subject) => (
               <Link
                 key={subject.subject_id}
                 href={`/subject/${subject.subject_id}`}
                 className="group bg-[#f3a954] rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-[#f3a954] hover:border-[#e09843]"
               >
-                <div className="p-6">
+                <div className="p-5">
                   {/* Subject Name */}
-                  <h3 className="text-lg font-semibold text-white text-center group-hover:scale-105 transition-transform">
+                  <h3 className="text-base font-semibold text-white text-center group-hover:scale-105 transition-transform">
                     {subject.name}
                   </h3>
                 </div>

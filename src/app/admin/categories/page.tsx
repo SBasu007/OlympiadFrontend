@@ -12,7 +12,7 @@ export default function CategoriesPage(){
     async function load(){
       try {
         const token = localStorage.getItem("auth_token");
-        const res = await fetch(process.env.NEXT_PUBLIC_API_BASE + "/admin/category",{
+        const res = await fetch(process.env.NEXT_PUBLIC_API_BASE + "admin/category",{
           headers:{ Authorization: token ? `Bearer ${token}` : "" }
         });
         const data = await res.json();

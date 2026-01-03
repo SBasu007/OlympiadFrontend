@@ -11,6 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isExamDropdownOpen, setIsExamDropdownOpen] = useState(false); // NEW
   const [isQPDropdownOpen, setIsQPDropdownOpen] = useState(false);
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
+  const [isUserExamDropdownOpen, setIsUserExamDropdownOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
   // Redirect to login if no tab session
@@ -47,6 +48,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
   const toggleQPDropdown = () => {
     setIsQPDropdownOpen(!isQPDropdownOpen);
+  };
+
+  const toggleUserExamDropdown = () => {
+    setIsUserExamDropdownOpen(!isUserExamDropdownOpen);
   };
 
   if (!ready) return null;
@@ -252,6 +257,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   }`}
                 >
                   All Question Paper
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* User Exam with Dropdown */}
+          <div className="relative">
+            <button
+              onClick={toggleUserExamDropdown}
+              className={`w-full rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-between ${
+                pathname.includes('/admin/user-exam') ? "bg-pink-600 text-white" : "hover:bg-gray-200 text-gray-700"
+              }`}
+            >
+              <span>User Exam</span>
+              <svg
+                className={`w-4 h-4 transition-transform ${isUserExamDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isUserExamDropdownOpen && (
+              <div className="mt-1 ml-4 space-y-1">
+                <Link
+                  href="/admin/user-exam/pending-payment"
+                  className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname === '/admin/user-exam/pending-payment' ? "bg-pink-500 text-white" : "hover:bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  Pending Payment Proof
                 </Link>
               </div>
             )}
