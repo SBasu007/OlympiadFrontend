@@ -6,6 +6,8 @@ import * as XLSX from "xlsx";
 
 interface Enrollment {
   enrol_id: number;
+  user_id: string;
+  exam_id: number;
   name: string;
   payment_url: string;
   contact: string;
@@ -50,7 +52,7 @@ export default function PendingPaymentPage() {
     }
   };
 
-  const handleStatusUpdate = async (enrolId: number, status: "approved" | "declined") => {
+  const handleStatusUpdate = async (enrolId: number, status: "approved" | "declined", userId: string, examId: number) => {
     if (!confirm(`Are you sure you want to ${status === "approved" ? "approve" : "decline"} this enrollment?`)) {
       return;
     }
@@ -65,7 +67,7 @@ export default function PendingPaymentPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, user_id: userId, exam_id: examId })
       });
 
       if (!response.ok) {
@@ -276,14 +278,14 @@ export default function PendingPaymentPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleStatusUpdate(enrollment.enrol_id, "approved")}
+                          onClick={() => handleStatusUpdate(enrollment.enrol_id, "approved", enrollment.user_id, enrollment.exam_id)}
                           disabled={processingId === enrollment.enrol_id}
                           className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
                           {processingId === enrollment.enrol_id ? "Processing..." : "Approve"}
                         </button>
                         <button
-                          onClick={() => handleStatusUpdate(enrollment.enrol_id, "declined")}
+                          onClick={() => handleStatusUpdate(enrollment.enrol_id, "declined", enrollment.user_id, enrollment.exam_id)}
                           disabled={processingId === enrollment.enrol_id}
                           className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >

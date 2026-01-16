@@ -2,6 +2,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Navbar from "@/app/components/Navbar";
+import ReExamModal from "@/app/components/ReExamModal";
 import { useAuth } from "@/app/contexts/AuthContext";
 
 interface Exam {
@@ -24,6 +25,15 @@ interface EnrollmentStatus {
   status?: string;
 }
 
+interface ExamAccess {
+  hasAccess: boolean;
+  exam_access_id?: number;
+  user_id?: string;
+  exam_id?: number;
+  status?: string;
+  attempted?: string;
+}
+
 export default function ExamDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -32,7 +42,9 @@ export default function ExamDetailPage() {
   
   const [exam, setExam] = useState<Exam | null>(null);
   const [enrollmentStatus, setEnrollmentStatus] = useState<EnrollmentStatus>({ enrolled: false });
+  const [examAccess, setExamAccess] = useState<ExamAccess | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showReExamModal, setShowReExamModal] = useState(false);
 
   useEffect(() => {
     const fetchExamDetails = async () => {
@@ -55,6 +67,17 @@ export default function ExamDetailPage() {
           );
           if (enrollmentResponse.ok) {
             const enrollmentData = await enrollmentResponse.json();
+
+            // If approved, check exam access
+            if (enrollmentData.status === 'approved') {
+              const accessResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_BASE}admin/exam-access/${user.user_id}?exam_id=${examId}`
+              );
+              if (accessResponse.ok) {
+                const accessData = await accessResponse.json();
+                setExamAccess(accessData);
+              }
+            }
             setEnrollmentStatus(enrollmentData);
           }
         }
@@ -90,6 +113,15 @@ export default function ExamDetailPage() {
     router.push(`/exam/${examId}/take`);
   };
 
+  const handleReExamClick = () => {
+    setShowReExamModal(true);
+  };
+
+  const handleResumeExamClick = () => {
+    // Navigate to exam taking page with resume mode
+    router.push(`/exam/${examId}/take?mode=resume`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -120,6 +152,13 @@ export default function ExamDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Navbar />
+
+      <ReExamModal
+        isOpen={showReExamModal}
+        onClose={() => setShowReExamModal(false)}
+        examId={examId}
+        userId={user?.user_id || ""}
+      />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Exam Details Card */}
@@ -265,12 +304,49 @@ export default function ExamDetailPage() {
                   Approval Declined
                 </button>
               ) : enrollmentStatus.status === 'approved' ? (
-                <button
-                  onClick={handleAppearForExam}
-                  className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                >
-                  Appear for Exam
-                </button>
+                <>
+                  {!examAccess || !examAccess.hasAccess ? (
+                    // No access record yet
+                    <button
+                      onClick={handleAppearForExam}
+                      className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    >
+                      Appear for Exam
+                    </button>
+                  ) : examAccess.attempted === 'unsubmitted' ? (
+                    // Exam not yet submitted
+                    <button
+                      onClick={handleAppearForExam}
+                      className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    >
+                      Appear for Exam
+                    </button>
+                  ) : examAccess.attempted === 'submitted' ? (
+                    // Already appeared
+                    <button
+                      disabled
+                      className="w-full px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg cursor-not-allowed"
+                    >
+                      Already Appeared for Exam
+                    </button>
+                  ) : examAccess.attempted === 'ended' ? (
+                    // Can request re-exam
+                    <button
+                      onClick={handleReExamClick}
+                      className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    >
+                      Request Re-exam
+                    </button>
+                  ) : examAccess.attempted === 'reexam' ? (
+                    // Can request re-exam
+                    <button
+                      onClick={handleResumeExamClick}
+                      className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    >
+                      Resume Exam
+                    </button>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </div>

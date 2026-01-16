@@ -12,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isQPDropdownOpen, setIsQPDropdownOpen] = useState(false);
   const [isAdminUsersOpen, setIsAdminUsersOpen] = useState(false);
   const [isUserExamDropdownOpen, setIsUserExamDropdownOpen] = useState(false);
+  const [isRequestReExamDropdownOpen, setIsRequestReExamDropdownOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
   // Redirect to login if no tab session
@@ -52,6 +53,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const toggleUserExamDropdown = () => {
     setIsUserExamDropdownOpen(!isUserExamDropdownOpen);
+  };
+
+  const toggleRequestReExamDropdown = () => {
+    setIsRequestReExamDropdownOpen(!isRequestReExamDropdownOpen);
   };
 
   if (!ready) return null;
@@ -289,6 +294,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   }`}
                 >
                   Pending Payment Proof
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Request Re-Exam with Dropdown */}
+          <div className="relative">
+            <button
+              onClick={toggleRequestReExamDropdown}
+              className={`w-full rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-between ${
+                pathname.includes('/admin/request-re-exam') ? "bg-indigo-600 text-white" : "hover:bg-gray-200 text-gray-700"
+              }`}
+            >
+              <span>Request Re-Exam</span>
+              <svg
+                className={`w-4 h-4 transition-transform ${isRequestReExamDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isRequestReExamDropdownOpen && (
+              <div className="mt-1 ml-4 space-y-1">
+                <Link
+                  href="/admin/request-re-exam/all"
+                  className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname === '/admin/request-re-exam/all' ? "bg-indigo-500 text-white" : "hover:bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  All Requests
+                </Link>
+                <Link
+                  href="/admin/request-re-exam/pending"
+                  className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname === '/admin/request-re-exam/pending' ? "bg-indigo-500 text-white" : "hover:bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  Pending Requests
                 </Link>
               </div>
             )}

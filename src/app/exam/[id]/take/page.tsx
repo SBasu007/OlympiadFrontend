@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -17,6 +17,7 @@ interface QuestionStatus {
   markedForReview: boolean;
   selectedOption: string | null;
   savedAt?: number | null; // timestamp in seconds
+  locked?: boolean; // for resume mode - prevents changes to already attempted questions
 }
 
 interface Exam {
@@ -29,8 +30,10 @@ interface Exam {
 export default function TakeExamPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const examId = params.id as string;
+  const isResumeMode = searchParams.get('mode') === 'resume';
 
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -66,13 +69,54 @@ export default function TakeExamPage() {
           initialStatuses[q.question_id] = {
             answered: false,
             markedForReview: false,
-            selectedOption: null
+            selectedOption: null,
+            locked: false
           };
         });
-        setQuestionStatuses(initialStatuses);
 
-        // Set timer (duration is in minutes, convert to seconds)
-        setTimeRemaining(examData.duration * 60);
+        // If resume mode, fetch previous attempts and prepopulate
+        if (isResumeMode && user?.user_id) {
+          try {
+            // Fetch previous result to get time_taken
+            const previousResult = await apiFetch<any>(
+              `student/exam/${examId}/result/${user.user_id}`
+            );
+
+            // Fetch previous attempts
+            const previousAttempts = await apiFetch<any>(
+              `student/exam/${examId}/attempts/${user.user_id}`
+            );
+
+            // Prepopulate locked answers
+            if (previousAttempts && previousAttempts.length > 0) {
+              previousAttempts.forEach((attempt: any) => {
+                if (initialStatuses[attempt.question_id]) {
+                  initialStatuses[attempt.question_id] = {
+                    answered: true,
+                    markedForReview: false,
+                    selectedOption: attempt.selected_option,
+                    savedAt: attempt.saved_at,
+                    locked: true // Lock this question
+                  };
+                }
+              });
+            }
+
+            // Set timer to continue from where it left off
+            const timeTaken = previousResult?.time_taken || 0;
+            const remainingTime = (examData.duration * 60) - timeTaken;
+            setTimeRemaining(Math.max(0, remainingTime));
+          } catch (error) {
+            console.error("Error fetching previous attempts:", error);
+            // If fetching previous data fails, start fresh
+            setTimeRemaining(examData.duration * 60);
+          }
+        } else {
+          // Normal mode - set full timer
+          setTimeRemaining(examData.duration * 60);
+        }
+
+        setQuestionStatuses(initialStatuses);
 
       } catch (error) {
         console.error("Error fetching exam data:", error);
@@ -84,7 +128,7 @@ export default function TakeExamPage() {
     };
 
     fetchData();
-  }, [examId, isAuthenticated, router]);
+  }, [examId, isAuthenticated, isResumeMode, user?.user_id, router]);
 
   // Timer countdown
   useEffect(() => {
@@ -104,6 +148,65 @@ export default function TakeExamPage() {
     return () => clearInterval(timer);
   }, [timeRemaining, loading]);
 
+  // Handle page unload/close - auto-submit exam
+  useEffect(() => {
+    let hasSubmitted = false; // Flag to prevent duplicate submissions
+
+    const submitExamOnClose = () => {
+      if (hasSubmitted) {
+        console.log('[⚠️ Already submitted, skipping duplicate]');
+        return;
+      }
+      
+      hasSubmitted = true;
+
+      // Prepare answers
+      const answers: Record<number, { question: string; selectedOption: string; savedAt: number | null }> = {};
+      Object.entries(questionStatuses).forEach(([questionId, status]) => {
+        const question = questions.find(q => q.question_id === parseInt(questionId));
+        if (status.answered && status.selectedOption && question) {
+          answers[parseInt(questionId)] = {
+            question: question.question,
+            selectedOption: status.selectedOption,
+            savedAt: status.savedAt ?? null
+          };
+        }
+      });
+
+      const timeTaken = exam ? (exam.duration * 60) - timeRemaining : 0;
+      
+      const payload = {
+        exam_id: parseInt(examId),
+        user_id: user?.user_id,
+        answers,
+        time_taken: timeTaken,
+        submission_status: 'ended'
+      };
+
+      // Use sendBeacon for reliable submission on page unload
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') || 'http://localhost:3000/api';
+      const submitUrl = `${apiUrl}/student/exam/submit`;
+      
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const success = navigator.sendBeacon(submitUrl, blob);
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!submitting) {
+        submitExamOnClose();
+        // Show browser confirmation dialog
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [examId, user, questionStatuses, timeRemaining, exam, submitting]);
+
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -116,6 +219,11 @@ export default function TakeExamPage() {
   const handleOptionSelect = (option: string) => {
     if (!currentQuestion) return;
 
+    // Prevent changing locked questions in resume mode
+    if (questionStatuses[currentQuestion.question_id]?.locked) {
+      return;
+    }
+
     setQuestionStatuses(prev => ({
       ...prev,
       [currentQuestion.question_id]: {
@@ -127,6 +235,15 @@ export default function TakeExamPage() {
 
   const handleSaveAndNext = () => {
     if (!currentQuestion) return;
+
+    // Prevent saving locked questions in resume mode
+    if (questionStatuses[currentQuestion.question_id]?.locked) {
+      alert("This question was already answered and cannot be changed.");
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+      }
+      return;
+    }
 
     const selectedOption = questionStatuses[currentQuestion.question_id]?.selectedOption;
     
@@ -194,10 +311,12 @@ export default function TakeExamPage() {
 
     try {
       // Prepare answers object with savedAt
-      const answers: Record<number, { selectedOption: string; savedAt: number | null }> = {};
+      const answers: Record<number, { question: string; selectedOption: string; savedAt: number | null }> = {};
       Object.entries(questionStatuses).forEach(([questionId, status]) => {
-        if (status.answered && status.selectedOption) {
+        const question = questions.find(q => q.question_id === parseInt(questionId));
+        if (status.answered && status.selectedOption && question) {
           answers[parseInt(questionId)] = {
+            question: question.question,
             selectedOption: status.selectedOption,
             savedAt: status.savedAt ?? null
           };
@@ -206,6 +325,9 @@ export default function TakeExamPage() {
 
       // Calculate time taken
       const timeTaken = exam ? (exam.duration * 60) - timeRemaining : 0;
+
+      // Determine submission status
+      const submissionStatus = autoSubmit ? 'ended' : 'submitted';
 
       // Submit to backend
       const result = await apiFetch<{
@@ -225,7 +347,8 @@ export default function TakeExamPage() {
           exam_id: parseInt(examId),
           user_id: user?.user_id,
           answers,
-          time_taken: timeTaken
+          time_taken: timeTaken,
+          submission_status: submissionStatus
         })
       });
 
@@ -246,6 +369,7 @@ export default function TakeExamPage() {
   const getQuestionBoxColor = (questionId: number) => {
     const status = questionStatuses[questionId];
     if (!status) return "bg-gray-300 text-gray-700"; // Unvisited
+    if (status.locked) return "bg-blue-500 text-white"; // Locked (already answered)
     if (status.markedForReview) return "bg-yellow-400 text-white"; // Marked for review
     if (status.answered) return "bg-green-500 text-white"; // Answered
     return "bg-gray-300 text-gray-700"; // Not answered
@@ -303,6 +427,23 @@ export default function TakeExamPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Resume Mode Banner */}
+        {isResumeMode && (
+          <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-blue-900">Resume Mode</p>
+                <p className="text-sm text-blue-700">
+                  Your previously answered questions are locked and highlighted in blue. You can only attempt the remaining questions.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Section - Question Area (Main) */}
           <div className="lg:col-span-8">
@@ -332,17 +473,29 @@ export default function TakeExamPage() {
 
               {/* Options */}
               <div className="space-y-3 mb-8">
+                {questionStatuses[currentQuestion.question_id]?.locked && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span className="text-sm font-medium text-blue-800">
+                      This question was already answered in your previous attempt and is locked.
+                    </span>
+                  </div>
+                )}
                 {currentQuestion.options.map((option, index) => {
                   const isSelected = questionStatuses[currentQuestion.question_id]?.selectedOption === option;
+                  const isLocked = questionStatuses[currentQuestion.question_id]?.locked;
                   return (
                     <button
                       key={index}
                       onClick={() => handleOptionSelect(option)}
+                      disabled={isLocked}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                         isSelected
                           ? 'border-blue-600 bg-blue-50 shadow-md'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                      }`}
+                      } ${isLocked ? 'opacity-75 cursor-not-allowed' : ''}`}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-semibold ${
@@ -355,6 +508,11 @@ export default function TakeExamPage() {
                         <span className={`text-base ${isSelected ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
                           {option}
                         </span>
+                        {isLocked && isSelected && (
+                          <svg className="w-5 h-5 text-blue-600 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        )}
                       </div>
                     </button>
                   );
@@ -430,6 +588,12 @@ export default function TakeExamPage() {
                   <span className="w-6 h-6 bg-yellow-400 rounded"></span>
                   <span className="text-gray-700">Marked for Review</span>
                 </div>
+                {isResumeMode && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 bg-blue-500 rounded"></span>
+                    <span className="text-gray-700">Locked (Previously Answered)</span>
+                  </div>
+                )}
               </div>
 
               {/* Question Numbers Grid */}
