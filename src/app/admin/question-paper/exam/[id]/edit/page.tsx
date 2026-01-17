@@ -178,10 +178,14 @@ export default function EditExamPaperPage(){
       setUpdatingQuestions(false);
       setShowSuccessPopup(true);
       
-      // Auto-hide success popup after 5 seconds
+      // Auto-hide success popup after 5 seconds and return to all page
       setTimeout(() => {
         setShowSuccessPopup(false);
-      }, 5000);
+        // Redirect back to all questions page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/admin/question-paper/all';
+        }
+      }, 2000);
       
     }catch(e:any){
       setUpdatingQuestions(false);

@@ -285,18 +285,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {isUserExamDropdownOpen && (
-              <div className="mt-1 ml-4 space-y-1">
-                <Link
-                  href="/admin/user-exam/pending-payment"
-                  className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname === '/admin/user-exam/pending-payment' ? "bg-pink-500 text-white" : "hover:bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  Pending Payment Proof
-                </Link>
-              </div>
-            )}
+              {isUserExamDropdownOpen && (
+                <div className="mt-1 ml-4 space-y-1">
+                  <Link
+                    href="/admin/user-exam/pending-payment"
+                    className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
+                      pathname === '/admin/user-exam/pending-payment' ? "bg-pink-500 text-white" : "hover:bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    Pending Payment Proof
+                  </Link>
+                  <Link
+                    href="/admin/user-exam/filter-merit-list"
+                    className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
+                      pathname === '/admin/user-exam/filter-merit-list' ? "bg-pink-500 text-white" : "hover:bg-gray-200 text-gray-600"
+                    }`} >
+                    Filter Merit List
+                  </Link>
+                </div>
+              )}
+            
           </div>
 
           {/* Request Re-Exam with Dropdown */}
