@@ -130,6 +130,75 @@ export default function TakeExamPage() {
     fetchData();
   }, [examId, isAuthenticated, isResumeMode, user?.user_id, router]);
 
+  // Define handleSubmit before using it in effects
+  const handleSubmit = useCallback(async (autoSubmit = false) => {
+    if (!autoSubmit && !window.confirm("Are you sure you want to submit the exam?")) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      // Prepare answers object with savedAt
+      const answers: Record<number, { question: string; selectedOption: string; savedAt: number | null }> = {};
+      Object.entries(questionStatuses).forEach(([questionId, status]) => {
+        const question = questions.find(q => q.question_id === parseInt(questionId));
+        if (status.answered && status.selectedOption && question) {
+          answers[parseInt(questionId)] = {
+            question: question.question,
+            selectedOption: status.selectedOption,
+            savedAt: status.savedAt ?? null
+          };
+        }
+      });
+
+      // Calculate time taken
+      const timeTaken = exam ? (exam.duration * 60) - timeRemaining : 0;
+
+      // Determine submission status
+      const submissionStatus = autoSubmit ? 'ended' : 'submitted';
+
+      // Submit to backend
+      const result = await apiFetch<{
+        result_id: number;
+        exam_name: string;
+        exam_type: string;
+        score: number;
+        total: number;
+        correct: number;
+        incorrect: number;
+        total_questions: number;
+        percentage: string;
+        passed: boolean;
+      }>('student/exam/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          exam_id: parseInt(examId),
+          user_id: user?.user_id,
+          answers,
+          time_taken: timeTaken,
+          submission_status: submissionStatus
+        })
+      });
+
+      // Store result in localStorage to display on result page
+      localStorage.setItem('exam_result', JSON.stringify(result));
+
+      // Redirect to result page
+      router.push(`/exam/${examId}/result?result_id=${result.result_id}`);
+
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+      alert("Failed to submit exam. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [examId, user?.user_id, questionStatuses, exam, timeRemaining, router, questions]);
+
+  const handleAutoSubmit = useCallback(async () => {
+    await handleSubmit(true);
+  }, [handleSubmit]);
+
   // Timer countdown
   useEffect(() => {
     if (timeRemaining <= 0 || loading) return;
@@ -297,74 +366,6 @@ export default function TakeExamPage() {
   const handleQuestionJump = (index: number) => {
     setCurrentQuestionIndex(index);
   };
-
-  const handleSubmit = useCallback(async (autoSubmit = false) => {
-    if (!autoSubmit && !window.confirm("Are you sure you want to submit the exam?")) {
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      // Prepare answers object with savedAt
-      const answers: Record<number, { question: string; selectedOption: string; savedAt: number | null }> = {};
-      Object.entries(questionStatuses).forEach(([questionId, status]) => {
-        const question = questions.find(q => q.question_id === parseInt(questionId));
-        if (status.answered && status.selectedOption && question) {
-          answers[parseInt(questionId)] = {
-            question: question.question,
-            selectedOption: status.selectedOption,
-            savedAt: status.savedAt ?? null
-          };
-        }
-      });
-
-      // Calculate time taken
-      const timeTaken = exam ? (exam.duration * 60) - timeRemaining : 0;
-
-      // Determine submission status
-      const submissionStatus = autoSubmit ? 'ended' : 'submitted';
-
-      // Submit to backend
-      const result = await apiFetch<{
-        result_id: number;
-        exam_name: string;
-        exam_type: string;
-        score: number;
-        total: number;
-        correct: number;
-        incorrect: number;
-        total_questions: number;
-        percentage: string;
-        passed: boolean;
-      }>('student/exam/submit', {
-        method: 'POST',
-        body: JSON.stringify({
-          exam_id: parseInt(examId),
-          user_id: user?.user_id,
-          answers,
-          time_taken: timeTaken,
-          submission_status: submissionStatus
-        })
-      });
-
-      // Store result in localStorage to display on result page
-      localStorage.setItem('exam_result', JSON.stringify(result));
-
-      // Redirect to result page
-      router.push(`/exam/${examId}/result?result_id=${result.result_id}`);
-
-    } catch (error) {
-      console.error("Error submitting exam:", error);
-      alert("Failed to submit exam. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [examId, user?.user_id, questionStatuses, exam, timeRemaining, router, questions]);
-
-  const handleAutoSubmit = useCallback(async () => {
-    await handleSubmit(true);
-  }, [handleSubmit]);
 
   const getQuestionBoxColor = (questionId: number) => {
     const status = questionStatuses[questionId];
