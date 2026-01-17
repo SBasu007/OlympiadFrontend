@@ -74,8 +74,8 @@ export default function ExamDetailPage() {
                 `${process.env.NEXT_PUBLIC_API_BASE}admin/exam-access/${user.user_id}?exam_id=${examId}`
               );
               if (accessResponse.ok) {
-                const accessData = await accessResponse.json();
-                setExamAccess(accessData);
+                const data = await accessResponse.json();
+                setExamAccess(data);
               }
             }
             setEnrollmentStatus(enrollmentData);
@@ -140,7 +140,7 @@ export default function ExamDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Exam Not Found</h3>
-            <p className="text-gray-600 mb-6">The exam you're looking for doesn't exist.</p>
+            <p className="text-gray-600 mb-6">The exam you&apos;re looking for doesn&apos;t exist.</p>
           </div>
         </div>
       </div>

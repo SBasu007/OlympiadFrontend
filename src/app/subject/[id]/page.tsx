@@ -21,12 +21,6 @@ interface Exam {
   certificate_bg?: string;
 }
 
-interface Subject {
-  subject_id: number;
-  subcategory_id: number;
-  name: string;
-}
-
 export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();

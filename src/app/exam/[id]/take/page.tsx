@@ -360,7 +360,7 @@ export default function TakeExamPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [examId, user?.user_id, questionStatuses, exam, timeRemaining, router]);
+  }, [examId, user?.user_id, questionStatuses, exam, timeRemaining, router, questions]);
 
   const handleAutoSubmit = useCallback(async () => {
     await handleSubmit(true);

@@ -22,7 +22,7 @@ export default function ExamResultPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const examId = params.id as string;
   const resultId = searchParams.get('result_id');
 
