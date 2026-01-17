@@ -17,7 +17,7 @@ interface Exam {
 export default function ExamApplyPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, token, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const examId = params.id as string;
 
   const [exam, setExam] = useState<Exam | null>(null);
