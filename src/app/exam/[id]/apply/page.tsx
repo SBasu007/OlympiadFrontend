@@ -91,9 +91,7 @@ export default function ExamApplyPage() {
         `${process.env.NEXT_PUBLIC_API_BASE}student/enroll`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
           body: formData,
         }
       );
