@@ -56,7 +56,7 @@ export default function Home() {
           {/* Admin Button */}
           <div className="pt-2">
             <Link
-              href="https://olympiad-frontend-iota.vercel.app/admin"
+              href="http://localhost:3001/admin"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-base sm:text-lg px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

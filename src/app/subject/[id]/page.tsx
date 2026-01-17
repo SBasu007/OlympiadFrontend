@@ -30,11 +30,10 @@ interface Subject {
 export default function SubjectPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, token, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const subjectId = params.id as string;
   
   const [exams, setExams] = useState<Exam[]>([]);
-  const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentStatus, setEnrollmentStatus] = useState<Record<number, boolean>>({});
 

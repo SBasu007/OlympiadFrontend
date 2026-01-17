@@ -37,6 +37,13 @@ export default function AllQuestionPaperPage() {
       const [cats, subs, subjs, exms, examIds] = await Promise.all([
         catRes.json(), subRes.json(), subjRes.json(), examRes.json(), examIdsRes.json()
       ]);
+
+      console.log("Loaded categories:", cats);
+      console.log("Loaded subcategories:", subs);
+      console.log("Loaded subjects:", subjs);
+      console.log("Loaded exams:", exms);
+      console.log("Loaded exam IDs with questions:", examIds);
+      
       setCategories(Array.isArray(cats) ? cats : []);
       setSubcategories(Array.isArray(subs) ? subs : []);
       setSubjects(Array.isArray(subjs) ? subjs : []);

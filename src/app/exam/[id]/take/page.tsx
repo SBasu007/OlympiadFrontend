@@ -1,5 +1,6 @@
 "use client";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -42,7 +43,6 @@ export default function TakeExamPage() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0); // in seconds
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Fetch exam details and questions
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function TakeExamPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, loading]);
+  }, [timeRemaining, loading, handleAutoSubmit]);
 
   // Handle page unload/close - auto-submit exam
   useEffect(() => {
@@ -188,7 +188,7 @@ export default function TakeExamPage() {
       const submitUrl = `${apiUrl}/student/exam/submit`;
       
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      const success = navigator.sendBeacon(submitUrl, blob);
+      navigator.sendBeacon(submitUrl, blob);
     };
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -205,7 +205,7 @@ export default function TakeExamPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [examId, user, questionStatuses, timeRemaining, exam, submitting]);
+  }, [examId, user, questionStatuses, timeRemaining, exam, submitting, questions]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -298,11 +298,7 @@ export default function TakeExamPage() {
     setCurrentQuestionIndex(index);
   };
 
-  const handleAutoSubmit = async () => {
-    await handleSubmit(true);
-  };
-
-  const handleSubmit = async (autoSubmit = false) => {
+  const handleSubmit = useCallback(async (autoSubmit = false) => {
     if (!autoSubmit && !window.confirm("Are you sure you want to submit the exam?")) {
       return;
     }
@@ -364,7 +360,11 @@ export default function TakeExamPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [examId, user?.user_id, questionStatuses, exam, timeRemaining, router]);
+
+  const handleAutoSubmit = useCallback(async () => {
+    await handleSubmit(true);
+  }, [handleSubmit]);
 
   const getQuestionBoxColor = (questionId: number) => {
     const status = questionStatuses[questionId];
@@ -462,9 +462,11 @@ export default function TakeExamPage() {
                 {/* Question Image */}
                 {currentQuestion.image_url && (
                   <div className="mt-4 mb-6">
-                    <img
+                    <Image
                       src={currentQuestion.image_url}
                       alt="Question"
+                      width={800}
+                      height={600}
                       className="max-w-full h-auto rounded-lg border border-gray-200"
                     />
                   </div>
