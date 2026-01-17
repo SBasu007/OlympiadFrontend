@@ -28,6 +28,7 @@ export default function SubjectPage() {
   const subjectId = params.id as string;
   
   const [exams, setExams] = useState<Exam[]>([]);
+  const [subject, setSubject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentStatus, setEnrollmentStatus] = useState<Record<number, boolean>>({});
 
