@@ -157,7 +157,7 @@ export default function ExamDetailPage() {
         isOpen={showReExamModal}
         onClose={() => setShowReExamModal(false)}
         examId={examId}
-        userId={user?.user_id || ""}
+        userId={user?.user_id?.toString() || ""}
       />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
