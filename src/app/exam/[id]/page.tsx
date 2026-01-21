@@ -45,6 +45,7 @@ export default function ExamDetailPage() {
   const [examAccess, setExamAccess] = useState<ExamAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const [showReExamModal, setShowReExamModal] = useState(false);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchExamDetails = async () => {
@@ -120,6 +121,34 @@ export default function ExamDetailPage() {
   const handleResumeExamClick = () => {
     // Navigate to exam taking page with resume mode
     router.push(`/exam/${examId}/take?mode=resume`);
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!user?.user_id || !examId) {
+      setCertificateError("Unable to generate certificate. Please try again.");
+      return;
+    }
+
+    try {
+      setCertificateError(null);
+      const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/certificate/${user.user_id}/${examId}`;
+      
+      const response = await fetch(certificateUrl);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setCertificateError(errorData.message || "Failed to generate certificate");
+        return;
+      }
+
+      // Open the PDF in a new tab
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error("Certificate error:", error);
+      setCertificateError("An error occurred while generating the certificate");
+    }
   };
 
   if (loading) {
@@ -266,6 +295,27 @@ export default function ExamDetailPage() {
               </div>
             )}
 
+            {/* Certificate Error Message */}
+            {certificateError && (
+              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-red-800 font-medium">Certificate Not Available</p>
+                  <p className="text-red-700 text-sm mt-1">{certificateError}</p>
+                </div>
+                <button
+                  onClick={() => setCertificateError(null)}
+                  className="text-red-600 hover:text-red-800 flex-shrink-0"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
             {/* Action Button */}
             <div className="pt-3">
               {!isAuthenticated ? (
@@ -276,12 +326,27 @@ export default function ExamDetailPage() {
                   Login to Continue
                 </button>
               ) : expired ? (
+                <>
+                  {/* Show certificate even if exam is expired */}
+                {!examAccess || !examAccess.hasAccess ? (
+                    // No access record yet
+                    <></>
+                  ) : examAccess.attempted === 'submitted' ? (
+                    // Exam submitted
+                    <button
+                      onClick={handleDownloadCertificate}
+                      className="w-full px-6 py-3 mb-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    >
+                      Download Certificate
+                    </button>
+                  ):null}
                 <button
                   disabled
                   className="w-full px-6 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed opacity-75"
                 >
                   Exam Registration Expired
                 </button>
+                </>
               ) : !enrollmentStatus.enrolled ? (
                 <button
                   onClick={() => router.push(`/exam/${examId}/apply`)}
