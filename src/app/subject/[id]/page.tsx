@@ -28,7 +28,6 @@ export default function SubjectPage() {
   const subjectId = params.id as string;
   
   const [exams, setExams] = useState<Exam[]>([]);
-  const [subject, setSubject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentStatus, setEnrollmentStatus] = useState<Record<number, boolean>>({});
 
@@ -36,15 +35,6 @@ export default function SubjectPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch subject details
-        const subjectResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE}admin/subject/${subjectId}`
-        );
-        if (subjectResponse.ok) {
-          const subjectData = await subjectResponse.json();
-          setSubject(subjectData);
-        }
 
         // Fetch exams for this subject
         const examsResponse = await fetch(

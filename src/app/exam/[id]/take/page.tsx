@@ -1,7 +1,7 @@
 "use client";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
@@ -43,6 +43,7 @@ export default function TakeExamPage() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0); // in seconds
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [autoSubmit, setAutoSubmit] = useState(false);
 
   // Fetch exam details and questions
   useEffect(() => {
@@ -182,7 +183,9 @@ export default function TakeExamPage() {
       });
 
       // Store result in localStorage to display on result page
-      localStorage.setItem('exam_result', JSON.stringify(result));
+      if (result) {
+        localStorage.setItem('exam_result', JSON.stringify(result));
+      }
 
       // Redirect to result page
       router.push(`/exam/${examId}/result?result_id=${result.result_id}`);
@@ -195,10 +198,6 @@ export default function TakeExamPage() {
     }
   }, [examId, user?.user_id, questionStatuses, exam, timeRemaining, router, questions]);
 
-  const handleAutoSubmit = useCallback(async () => {
-    await handleSubmit(true);
-  }, [handleSubmit]);
-
   // Timer countdown
   useEffect(() => {
     if (timeRemaining <= 0 || loading) return;
@@ -207,7 +206,7 @@ export default function TakeExamPage() {
       setTimeRemaining(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleAutoSubmit();
+          setAutoSubmit(true);
           return 0;
         }
         return prev - 1;
@@ -215,7 +214,7 @@ export default function TakeExamPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, loading, handleAutoSubmit]);
+  }, [timeRemaining, loading]);
 
   // Handle page unload/close - auto-submit exam
   useEffect(() => {
@@ -274,7 +273,7 @@ export default function TakeExamPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [examId, user, questionStatuses, timeRemaining, exam, submitting, questions]);
+  }, [examId, user, questionStatuses, timeRemaining, exam, submitting, questions, autoSubmit]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
