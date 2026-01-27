@@ -1,5 +1,4 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000/api/";
-import { getTokenFromCookie, isTokenExpired } from './jwt-utils';
 
 export interface MeritListResult {
   rank: number;
@@ -46,18 +45,6 @@ export async function apiFetch<T=any>(path:string, options: RequestInit = {}): P
   
   // For student routes, use credentials (cookies)
   const isStudentRoute = path.includes('/student') || path.includes('auth/student');
-  
-  // Validate student token before making request
-  if (isStudentRoute && typeof window !== 'undefined') {
-    const studentToken = getTokenFromCookie('student_token');
-    if (studentToken && isTokenExpired(studentToken)) {
-      console.warn('Student token expired, redirecting to login');
-      sessionStorage.clear();
-      window.location.href = '/auth/login';
-      throw new Error('Session expired');
-    }
-  }
-  
   const fetchOptions: RequestInit = {
     ...options,
     headers,
@@ -74,7 +61,6 @@ export async function apiFetch<T=any>(path:string, options: RequestInit = {}): P
         window.location.href = '/auth/admin';
       } else {
         // For student routes, redirect to login
-        sessionStorage.clear();
         window.location.href = '/auth/login';
       }
     }
