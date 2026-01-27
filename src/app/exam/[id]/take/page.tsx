@@ -405,6 +405,19 @@ export default function TakeExamPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Loading Overlay */}
+      {submitting && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 text-center max-w-sm">
+            <div className="flex justify-center mb-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Submitting Your Exam</h2>
+            <p className="text-gray-600">Please wait while we process your answers...</p>
+          </div>
+        </div>
+      )}
+
       {/* Header with Timer */}
       <div className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

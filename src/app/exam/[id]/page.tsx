@@ -325,28 +325,21 @@ export default function ExamDetailPage() {
                 >
                   Login to Continue
                 </button>
+              ) : examAccess?.attempted === 'submitted' ? (
+                // Show certificate when exam has been submitted (regardless of expiration)
+                <button
+                  onClick={handleDownloadCertificate}
+                  className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                >
+                  Download Certificate
+                </button>
               ) : expired ? (
-                <>
-                  {/* Show certificate even if exam is expired */}
-                {!examAccess || !examAccess.hasAccess ? (
-                    // No access record yet
-                    <></>
-                  ) : examAccess.attempted === 'submitted' ? (
-                    // Exam submitted
-                    <button
-                      onClick={handleDownloadCertificate}
-                      className="w-full px-6 py-3 mb-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                    >
-                      Download Certificate
-                    </button>
-                  ):null}
                 <button
                   disabled
                   className="w-full px-6 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed opacity-75"
                 >
                   Exam Registration Expired
                 </button>
-                </>
               ) : !enrollmentStatus.enrolled ? (
                 <button
                   onClick={() => router.push(`/exam/${examId}/apply`)}
@@ -386,14 +379,6 @@ export default function ExamDetailPage() {
                     >
                       Appear for Exam
                     </button>
-                  ) : examAccess.attempted === 'submitted' ? (
-                    // Already appeared
-                    <button
-                      disabled
-                      className="w-full px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg cursor-not-allowed"
-                    >
-                      Already Appeared for Exam
-                    </button>
                   ) : examAccess.attempted === 'ended' ? (
                     // Can request re-exam
                     <button
@@ -403,7 +388,7 @@ export default function ExamDetailPage() {
                       Request Re-exam
                     </button>
                   ) : examAccess.attempted === 'reexam' ? (
-                    // Can request re-exam
+                    // Resume re-exam
                     <button
                       onClick={handleResumeExamClick}
                       className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"

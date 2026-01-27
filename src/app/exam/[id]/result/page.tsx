@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 import Navbar from "@/app/components/Navbar";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useCallback } from "react";
 
 interface ResultData {
   result_id: number;
@@ -22,12 +23,13 @@ export default function ExamResultPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const examId = params.id as string;
   const resultId = searchParams.get('result_id');
 
   const [result, setResult] = useState<ResultData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -49,6 +51,34 @@ export default function ExamResultPage() {
     }
     setLoading(false);
   }, [isAuthenticated, router, examId, resultId]);
+
+  const handleDownloadCertificate = useCallback(async () => {
+    if (!user?.user_id || !examId) {
+      setCertificateError("Unable to generate certificate. Please try again.");
+      return;
+    }
+
+    try {
+      setCertificateError(null);
+      const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/certificate/${user.user_id}/${examId}`;
+      
+      const response = await fetch(certificateUrl);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setCertificateError(errorData.message || "Failed to generate certificate");
+        return;
+      }
+
+      // Open the PDF in a new tab
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error("Certificate error:", error);
+      setCertificateError("An error occurred while generating the certificate");
+    }
+  }, [user?.user_id, examId]);
 
   if (loading) {
     return (
@@ -174,9 +204,34 @@ export default function ExamResultPage() {
 
         {/* Back to Home Button */}
         <div className="text-center">
+          {certificateError && (
+            <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-red-800 font-medium">Certificate Not Available</p>
+                <p className="text-red-700 text-sm mt-1">{certificateError}</p>
+              </div>
+              <button
+                onClick={() => setCertificateError(null)}
+                className="text-red-600 hover:text-red-800 flex-shrink-0"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <button
+            onClick={handleDownloadCertificate}
+            className="px-8 py-3 bg-[#ff8a00] text-white text-lg font-semibold rounded-lg hover:bg-[#e67600] transition-colors shadow-lg mr-3"
+          >
+            Download Certificate
+          </button>
           <button
             onClick={() => router.push('/')}
-            className="px-8 py-3 bg-[#ff8a00] text-white text-lg font-semibold rounded-lg hover:bg-[#e67600] transition-colors shadow-lg"
+            className="px-8 py-3 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
           >
             Back to Home
           </button>

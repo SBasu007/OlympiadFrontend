@@ -156,9 +156,9 @@ export default function Navbar() {
               <Image
                 src="/logo.jpg"
                 alt="Talent Search Olympiad Logo" 
-                width={40}
-                height={40}
-                className="h-10 w-10"
+                width={150}
+                height={45}
+                className="h-10 w-auto"
               />
             </Link>
           </div>
