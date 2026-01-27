@@ -1,5 +1,6 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { getTokenFromCookie, isTokenExpired, getTokenTimeRemaining } from '@/lib/jwt-utils';
 
 interface User {
   user_id: number;
@@ -18,6 +19,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  tokenTimeRemaining: number; // Time remaining in seconds
 }
 
 interface RegisterData {
@@ -35,11 +37,66 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tokenTimeRemaining, setTokenTimeRemaining] = useState<number>(0);
+
+  // Validate token and logout if expired
+  const validateToken = useCallback(async () => {
+    try {
+      // Get token from HTTP-only cookie (only accessible via document.cookie for validation)
+      const token = getTokenFromCookie('student_token');
+      
+      if (!token) {
+        // No token found, logout
+        if (user) {
+          console.warn('No token found, logging out');
+          await logout();
+        }
+        return false;
+      }
+
+      // Check if token is expired
+      if (isTokenExpired(token)) {
+        console.warn('Token expired, logging out');
+        await logout();
+        return false;
+      }
+
+      // Update time remaining
+      const remaining = getTokenTimeRemaining(token);
+      setTokenTimeRemaining(remaining);
+
+      return true;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  }, [user]);
 
   // Check authentication status on mount
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Periodically validate token (every 30 seconds)
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    // Initial validation
+    validateToken();
+
+    // Set up interval to check token expiry
+    const interval = setInterval(async () => {
+      const isValid = await validateToken();
+      
+      if (!isValid) {
+        console.warn('Token validation failed, user will be logged out');
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user, validateToken]);
 
   const checkAuth = async () => {
     try {
@@ -136,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     isAuthenticated: !!user,
+    tokenTimeRemaining,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

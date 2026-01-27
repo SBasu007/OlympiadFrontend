@@ -31,8 +31,9 @@ export default function PendingPaymentPage() {
       setLoading(true);
       setError("");
       const token = sessionStorage.getItem("auth_token");
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
       
-      const response = await fetch("http://localhost:3000/api/admin/enrollments/pending", {
+      const response = await fetch(`${baseUrl}admin/enrollments/pending`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -60,8 +61,9 @@ export default function PendingPaymentPage() {
     try {
       setProcessingId(enrolId);
       const token = sessionStorage.getItem("auth_token");
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
 
-      const response = await fetch(`http://localhost:3000/api/admin/enrollments/${enrolId}/status`, {
+      const response = await fetch(`${baseUrl}admin/enrollments/${enrolId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

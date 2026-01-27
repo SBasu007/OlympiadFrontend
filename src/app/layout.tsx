@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import ConditionalFooter from "./components/ConditionalFooter";
+import SessionExpiryWarning from "./components/SessionExpiryWarning";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
             </div>
             <ConditionalFooter />
           </div>
+          <SessionExpiryWarning />
         </AuthProvider>
       </body>
     </html>
