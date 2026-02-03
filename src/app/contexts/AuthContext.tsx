@@ -43,6 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // First try to get user from localStorage as a fallback
+      const cachedUser = localStorage.getItem('user');
+      if (cachedUser) {
+        try {
+          setUser(JSON.parse(cachedUser));
+        } catch (e) {
+          localStorage.removeItem('user');
+        }
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}auth/student/me`, {
         method: 'GET',
         credentials: 'include', // Important: send cookies
@@ -51,12 +61,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        // Cache user data in localStorage as fallback
+        localStorage.setItem('user', JSON.stringify(data.user));
       } else {
         setUser(null);
+        localStorage.removeItem('user');
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      setUser(null);
+      // If network fails, keep cached user data if available
+      if (!localStorage.getItem('user')) {
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,8 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
       
-      // Store user in state only (token is in HTTP-only cookie)
+      // Store user in state and localStorage
       setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -106,8 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
       
-      // Store user in state only (token is in HTTP-only cookie)
+      // Store user in state and localStorage
       setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
@@ -124,8 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local state
+      // Clear local state and localStorage
       setUser(null);
+      localStorage.removeItem('user');
     }
   };
 
