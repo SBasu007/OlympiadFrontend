@@ -40,18 +40,14 @@ export default function AllSubjectsPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [catRes, subRes, subjRes] = await Promise.all([
-          fetch(API_BASE + "admin/category"),
-          fetch(API_BASE + "admin/subcategory"),
-          fetch(API_BASE + "admin/subject")
-        ]);
-        if (!catRes.ok) throw new Error("Failed to fetch categories");
-        if (!subRes.ok) throw new Error("Failed to fetch subcategories");
-        if (!subjRes.ok) throw new Error("Failed to fetch subjects");
+        // 🚀 OPTIMIZED: Use aggregated endpoint instead of 3 separate calls
+        const response = await fetch(API_BASE + "admin/dashboard-data");
+        if (!response.ok) throw new Error("Failed to fetch data");
 
-        const catData: Category[] = await catRes.json();
-        const subData: Subcategory[] = await subRes.json();
-        const subjData: Subject[] = await subjRes.json();
+        const data = await response.json();
+        const catData: Category[] = data.categories;
+        const subData: Subcategory[] = data.subcategories;
+        const subjData: Subject[] = data.subjects;
 
         // Build lookup maps
         const categoryMap = new Map<number, string>();

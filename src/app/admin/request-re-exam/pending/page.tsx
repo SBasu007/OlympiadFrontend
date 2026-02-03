@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 
 interface Request {
@@ -11,19 +12,17 @@ interface Request {
   exam_name: string;
   date: string;
   reason: string;
-  status: boolean;
+  status: string;
   remark: string;
   answers: any;
 }
 
 export default function PendingRequestsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [approveComment, setApproveComment] = useState("");
-  const [declineComment, setDeclineComment] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
+  const [showAnswersModal, setShowAnswersModal] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -33,8 +32,8 @@ export default function PendingRequestsPage() {
     try {
       setLoading(true);
       const data = await apiFetch<Request[]>("admin/request");
-      // Filter only pending requests (status is null or undefined, not true/false)
-      const pendingRequests = data.filter(req => req.status === null || (typeof req.status !== 'boolean'));
+      // Filter only pending requests (status is null or undefined)
+      const pendingRequests = data.filter(req => req.status == 'pending');
       setRequests(pendingRequests);
     } catch (error) {
       console.error("Error fetching requests:", error);
@@ -55,60 +54,34 @@ export default function PendingRequestsPage() {
     });
   };
 
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
   const handleViewDetails = (request: Request) => {
+    router.push(`/admin/request-re-exam/${request.re_attempt_id}`);
+  };
+
+  const handleViewAnswers = (request: Request) => {
+    if (!request.answers || Object.keys(request.answers).length === 0) {
+      alert("No answers available for this request");
+      return;
+    }
     setSelectedRequest(request);
-    setShowDetailsModal(true);
-    setApproveComment("");
-    setDeclineComment("");
+    setShowAnswersModal(true);
   };
 
-  const handleApprove = async () => {
-    if (!selectedRequest) return;
 
-    try {
-      setActionLoading(true);
-      await apiFetch(`admin/request/${selectedRequest.re_attempt_id}/approve`, {
-        method: "PUT",
-        body: JSON.stringify({
-          status: true,
-          remark: approveComment
-        })
-      });
-
-      alert("Request approved successfully!");
-      setShowDetailsModal(false);
-      await fetchRequests();
-    } catch (error) {
-      console.error("Error approving request:", error);
-      alert("Failed to approve request");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDecline = async () => {
-    if (!selectedRequest) return;
-
-    try {
-      setActionLoading(true);
-      await apiFetch(`admin/request/${selectedRequest.re_attempt_id}/decline`, {
-        method: "PUT",
-        body: JSON.stringify({
-          status: false,
-          remark: declineComment
-        })
-      });
-
-      alert("Request declined successfully!");
-      setShowDetailsModal(false);
-      await fetchRequests();
-    } catch (error) {
-      console.error("Error declining request:", error);
-      alert("Failed to decline request");
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -181,12 +154,22 @@ export default function PendingRequestsPage() {
                     {formatDate(request.date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => handleViewDetails(request)}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-                    >
-                      View Details
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewDetails(request)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                      >
+                        Details
+                      </button>
+                      {request.answers && Object.keys(request.answers).length > 0 && (
+                        <button
+                          onClick={() => handleViewAnswers(request)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          Answers
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -195,113 +178,77 @@ export default function PendingRequestsPage() {
         </div>
       )}
 
-      {/* Details Modal */}
-      {showDetailsModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Request Details</h2>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+      {/* Answers Modal */}
+      {showAnswersModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Answers - {selectedRequest.name} ({selectedRequest.exam_name})
+              </h2>
+              <button
+                onClick={() => setShowAnswersModal(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600">Name</label>
-                    <p className="mt-1 text-gray-900">{selectedRequest.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600">Contact</label>
-                    <p className="mt-1 text-gray-900">{selectedRequest.contact}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600">Exam Name</label>
-                    <p className="mt-1 text-gray-900">{selectedRequest.exam_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600">Request Date</label>
-                    <p className="mt-1 text-gray-900">{formatDate(selectedRequest.date)}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-semibold text-gray-600">Reason</label>
-                    <p className="mt-1 text-gray-900 whitespace-pre-wrap">{selectedRequest.reason}</p>
-                  </div>
-                </div>
+            {/* Modal Body */}
+            <div className="overflow-y-auto flex-1 p-6">
+              <div className="space-y-3">
+                {Object.entries(selectedRequest.answers).map(([qId, answer]: [string, any]) => {
+                  const truncateText = (text: string, maxLength: number) => {
+                    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+                  };
 
-                {/* Previous Answers */}
-                {selectedRequest.answers && (
-                  <div className="border-t pt-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Previous Attempt Answers</h3>
-                    <div className="space-y-3">
-                      {Object.entries(selectedRequest.answers).map(([qId, answer]: [string, any]) => (
-                        <div key={qId} className="bg-gray-50 p-3 rounded-lg">
-                          <p className="text-sm font-medium text-gray-700">Question {qId}</p>
-                          <p className="text-xs text-gray-600 mt-1">{answer.question}</p>
-                          <p className="text-sm text-gray-900 mt-2">
-                            <span className="font-semibold">Answer:</span> {answer.selectedOption}
-                          </p>
+                  return (
+                    <div key={qId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                      <div className="flex-shrink-0">
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-700 truncate">{truncateText(answer.question, 80)}</p>
+                        <div className="flex gap-2 mt-1 flex-wrap">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {answer.selectedOption}
+                          </span>
+                          <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">
+                            {formatTime(answer.savedAt)}
+                          </span>
                         </div>
-                      ))}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {answer.correct ? (
+                          <span className="inline-flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center justify-center w-6 h-6 bg-red-100 rounded-full">
+                            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="border-t pt-6 space-y-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600">Approval Comment (Optional)</label>
-                    <textarea
-                      value={approveComment}
-                      onChange={(e) => setApproveComment(e.target.value)}
-                      placeholder="Add comment for approval..."
-                      className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-semibold text-gray-600">Decline Comment (Optional)</label>
-                    <textarea
-                      value={declineComment}
-                      onChange={(e) => setDeclineComment(e.target.value)}
-                      placeholder="Add comment for decline..."
-                      className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                      rows={3}
-                    />
-                  </div>
-                </div>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={handleApprove}
-                  disabled={actionLoading}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {actionLoading ? "Processing..." : "Approve"}
-                </button>
-                <button
-                  onClick={handleDecline}
-                  disabled={actionLoading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {actionLoading ? "Processing..." : "Decline"}
-                </button>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                >
-                  Close
-                </button>
-              </div>
+            {/* Modal Footer */}
+            <div className="p-6 border-t">
+              <button
+                onClick={() => setShowAnswersModal(false)}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

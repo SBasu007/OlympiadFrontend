@@ -33,34 +33,27 @@ export default function AllSubcategoriesPage() {
       setLoading(true);
       console.log(API_BASE);
       try {
-        // Fetch categories and subcategories in parallel
-        const [categoriesResponse, subcategoriesResponse] = await Promise.all([
-          fetch(API_BASE+"admin/category"),
-          fetch(API_BASE+"admin/subcategory")
-        ]);
-        if (!categoriesResponse.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        if (!subcategoriesResponse.ok) {
-          throw new Error("Failed to fetch subcategories");
+        // 🚀 OPTIMIZED: Use aggregated endpoint
+        const response = await fetch(API_BASE + "admin/dashboard-data");
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
         }
 
-        const categoriesData = await categoriesResponse.json();
-        const subcategoriesData = await subcategoriesResponse.json();
+        const data = await response.json();
 
         // Create a map for quick category lookup
         const categoryMap = new Map();
-        categoriesData.forEach((cat: Category) => {
+        data.categories.forEach((cat: Category) => {
           categoryMap.set(cat.category_id, cat.name);
         });
 
         // Add category names to subcategories
-        const enrichedSubcategories = subcategoriesData.map((sub: Subcategory) => ({
+        const enrichedSubcategories = data.subcategories.map((sub: Subcategory) => ({
           ...sub,
           categoryName: categoryMap.get(sub.category_id) || "Unknown Category"
         }));
 
-        setCategories(categoriesData);
+        setCategories(data.categories);
         setSubcategories(enrichedSubcategories);
       } catch (err: any) {
         console.error("Error fetching data:", err);

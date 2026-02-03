@@ -12,7 +12,7 @@ interface Request {
   exam_name: string;
   date: string;
   reason: string;
-  status: boolean;
+  status: string;
   remark: string;
   answers: object;
 }
@@ -53,14 +53,14 @@ export default function RequestDetailsPage() {
     }
   };
 
-  const getStatusBadge = (status: boolean) => {
-    if (status === true) {
+  const getStatusBadge = (status: string) => {
+    if (status === 'approved') {
       return (
         <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
           Approved
         </span>
       );
-    } else if (status === false) {
+    } else if (status === 'declined') {
       return (
         <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
           Declined
@@ -84,6 +84,20 @@ export default function RequestDetailsPage() {
       hour: "2-digit",
       minute: "2-digit"
     });
+  };
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
   };
   console.log(request?.answers)
   const handleApprove = async () => {
@@ -264,7 +278,7 @@ export default function RequestDetailsPage() {
                               {answer.selectedOption}
                             </span>
                             <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">
-                              {answer.savedAt}s
+                              {formatTime(answer.savedAt)}
                             </span>
                           </div>
                         </div>

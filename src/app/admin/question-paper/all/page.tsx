@@ -27,28 +27,22 @@ export default function AllQuestionPaperPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [catRes, subRes, subjRes, examRes, examIdsRes] = await Promise.all([
-        fetch(API_BASE + "admin/category"),
-        fetch(API_BASE + "admin/subcategory"),
-        fetch(API_BASE + "admin/subject"),
-        fetch(API_BASE + "admin/exam"),
-        fetch(API_BASE + "admin/exams-with-questions") // Optimized endpoint
-      ]);
-      const [cats, subs, subjs, exms, examIds] = await Promise.all([
-        catRes.json(), subRes.json(), subjRes.json(), examRes.json(), examIdsRes.json()
-      ]);
-
-      console.log("Loaded categories:", cats);
-      console.log("Loaded subcategories:", subs);
-      console.log("Loaded subjects:", subjs);
-      console.log("Loaded exams:", exms);
-      console.log("Loaded exam IDs with questions:", examIds);
+      // 🚀 OPTIMIZED: Single call instead of 5 separate API calls
+      const res = await fetch(API_BASE + "admin/dashboard-data");
       
-      setCategories(Array.isArray(cats) ? cats : []);
-      setSubcategories(Array.isArray(subs) ? subs : []);
-      setSubjects(Array.isArray(subjs) ? subjs : []);
-      setExams(Array.isArray(exms) ? exms : []);
-      setExamIdsWithQuestions(Array.isArray(examIds) ? examIds : []);
+      if (!res.ok) {
+        throw new Error("Failed to fetch dashboard data");
+      }
+      
+      const data = await res.json();
+
+      console.log("Loaded dashboard data:", data);
+      
+      setCategories(Array.isArray(data.categories) ? data.categories : []);
+      setSubcategories(Array.isArray(data.subcategories) ? data.subcategories : []);
+      setSubjects(Array.isArray(data.subjects) ? data.subjects : []);
+      setExams(Array.isArray(data.exams) ? data.exams : []);
+      setExamIdsWithQuestions(Array.isArray(data.examsWithQuestions) ? data.examsWithQuestions : []);
     } catch (e: any) {
       setError(e?.message || "Failed to load data");
     } finally {

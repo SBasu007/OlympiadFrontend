@@ -74,6 +74,20 @@ export default function AllRequestsPage() {
     });
   };
 
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
   const handleViewDetails = (request: Request) => {
     router.push(`/admin/request-re-exam/${request.re_attempt_id}`);
   };
@@ -218,7 +232,7 @@ export default function AllRequestsPage() {
                             {answer.selectedOption}
                           </span>
                           <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded">
-                            {answer.savedAt}s
+                            {formatTime(answer.savedAt)}
                           </span>
                         </div>
                       </div>
