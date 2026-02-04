@@ -112,7 +112,7 @@ export default function ExamResultPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
         <div className="mb-8">
           <p className="text-center text-gray-700 text-lg">
             Exam is Over. Thank you for Participating in the <span className="font-bold text-blue-600">TALENT SEARCH OLYMPIAD</span>.<br/>

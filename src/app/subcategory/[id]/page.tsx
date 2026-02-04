@@ -65,7 +65,7 @@ export default function SubcategoryPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
         {/* Breadcrumb */}
         {/* <nav className="mb-6 flex items-center space-x-2 text-sm">
           <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors">

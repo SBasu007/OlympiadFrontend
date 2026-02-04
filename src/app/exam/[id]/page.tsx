@@ -189,7 +189,7 @@ export default function ExamDetailPage() {
         userId={user?.user_id?.toString() || ""}
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
         {/* Exam Details Card */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
           <div className="p-8">
