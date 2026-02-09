@@ -19,7 +19,7 @@ export default function EditExamPaperPage(){
   const [error, setError] = useState<string|null>(null);
   const [exam, setExam] = useState<Exam| null>(null);
   const [questions, setQuestions] = useState<QuestionDraft[]>([]);
-  const [originalQuestions, setOriginalQuestions] = useState<OriginalQuestion[]>([]);
+  const [originalQuestions, setOriginalQuestions] = useState<Record<number, OriginalQuestion>>({});
   const [updatingQuestions, setUpdatingQuestions] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [updatedCount, setUpdatedCount] = useState(0);
@@ -85,12 +85,17 @@ export default function EditExamPaperPage(){
         setQuestions(drafts);
         
         // Store original state for change detection
-        const originals: OriginalQuestion[] = drafts.map(d => ({
-          text: d.text,
-          options: [...d.options],
-          correctOption: d.correctOption,
-          image_url: d.image_url,
-        }));
+        const originals: Record<number, OriginalQuestion> = {};
+        drafts.forEach(d => {
+          if (d.question_id) {
+            originals[d.question_id] = {
+              text: d.text,
+              options: [...d.options],
+              correctOption: d.correctOption,
+              image_url: d.image_url,
+            };
+          }
+        });
         setOriginalQuestions(originals);
       }catch(e:any){
         setError(e?.message || 'Failed to load exam or questions');
@@ -101,7 +106,12 @@ export default function EditExamPaperPage(){
   },[id]);
 
   // Helper function to check if a question was modified
-  const isQuestionModified = (current: QuestionDraft, original: OriginalQuestion, index: number): boolean => {
+  const isQuestionModified = (current: QuestionDraft): boolean => {
+    if (!current.question_id) return false; // New questions don't have originals
+    
+    const original = originalQuestions[current.question_id];
+    if (!original) return true; // If we can't find original, assume modified
+    
     // Check if text changed
     if (current.text !== original.text) return true;
     
@@ -136,8 +146,7 @@ export default function EditExamPaperPage(){
         }
         
         // Check if this question was modified
-        const original = originalQuestions[idx];
-        if (!original || !isQuestionModified(q, original, idx)) {
+        if (!isQuestionModified(q)) {
           // Skip unchanged questions
           continue;
         }
@@ -145,15 +154,23 @@ export default function EditExamPaperPage(){
         const form = new FormData();
         form.append('question_text', q.text);
         form.append('options', JSON.stringify(q.options));
-        if (typeof q.correctOption === 'number') {
-          const correctIdx = q.correctOption;
-          const val = Array.isArray(q.options) && correctIdx >= 0 && correctIdx < q.options.length ? q.options[correctIdx] : undefined;
-          // Prefer sending the actual option string (matches backend storage model), fallback to index string
-          form.append('correct_option', typeof val === 'string' ? val : String(correctIdx));
+        
+        // Send the correct option value instead of index
+        if (typeof q.correctOption === 'number' && q.options[q.correctOption]) {
+          form.append('correct_option', q.options[q.correctOption]);
         }
         
         // Only append file if a new one was selected
         if(q.file) form.append('file', q.file);
+        
+        // Debug logging
+        console.log('Updating question:', q.question_id);
+        console.log('Sending data:', {
+          question_text: q.text,
+          options: q.options,
+          correct_option: q.correctOption,
+          options_json: JSON.stringify(q.options)
+        });
         
         const res = await fetch(`${API_BASE}admin/questions/${q.question_id}`, { method:'PUT', body: form });
         if(!res.ok){
@@ -161,17 +178,84 @@ export default function EditExamPaperPage(){
           throw new Error(err?.message || 'Failed to save');
         }
         
+        // Clear the file after successful upload to prevent permanent "modified" state
+        if(q.file) {
+          const next = [...questions];
+          next[idx] = { ...next[idx], file: null };
+          setQuestions(next);
+        }
+        
         updateCount++;
       }
       
-      // Update original questions to current state after successful save
-      const newOriginals: OriginalQuestion[] = questions.map(d => ({
-        text: d.text,
-        options: [...d.options],
-        correctOption: d.correctOption,
-        image_url: d.image_url,
-      }));
-      setOriginalQuestions(newOriginals);
+      // After all updates, refresh the data from server to ensure UI is in sync
+      if (updateCount > 0) {
+        console.log('Refreshing data from server after updates...');
+        const qsRes = await fetch(`${API_BASE}admin/questions?exam_id=${id}`);
+        const freshQuestions: Question[] = await qsRes.json();
+        
+        const freshDrafts: QuestionDraft[] = (freshQuestions || []).map(q => {
+          // Parse options which may come as an array or a JSON string
+          let parsedOptions: string[] = [];
+          if (Array.isArray(q.options)) {
+            parsedOptions = q.options as string[];
+          } else if (typeof q.options === 'string') {
+            try {
+              const maybe = JSON.parse(q.options);
+              if (Array.isArray(maybe)) parsedOptions = maybe as string[];
+            } catch {}
+          }
+
+          // Determine correct option index
+          let correctIndex: number | undefined = undefined;
+          if (typeof q.correct === 'string') {
+            // Try to match by option value first
+            const value = q.correct.trim();
+            const found = parsedOptions.findIndex(o => (o ?? '').trim() === value);
+            if (found >= 0) {
+              correctIndex = found;
+            } else {
+              // Fallback: numeric string index from legacy data
+              const n = parseInt(q.correct, 10);
+              if (!Number.isNaN(n)) correctIndex = n;
+            }
+          } else if (typeof q.correct === 'number') {
+            correctIndex = q.correct;
+          }
+
+          // Guard against out-of-bounds index
+          if (
+            typeof correctIndex === 'number' &&
+            (correctIndex < 0 || correctIndex >= parsedOptions.length)
+          ) {
+            correctIndex = undefined;
+          }
+
+          return {
+            question_id: q.question_id,
+            text: q.question || "",
+            options: parsedOptions,
+            correctOption: correctIndex,
+            image_url: q.image_url ?? null,
+          } as QuestionDraft;
+        });
+        
+        setQuestions(freshDrafts);
+        
+        // Update originals with fresh data
+        const newOriginals: Record<number, OriginalQuestion> = {};
+        freshDrafts.forEach(d => {
+          if (d.question_id) {
+            newOriginals[d.question_id] = {
+              text: d.text,
+              options: [...d.options],
+              correctOption: d.correctOption,
+              image_url: d.image_url,
+            };
+          }
+        });
+        setOriginalQuestions(newOriginals);
+      }
       
       // Show success popup
       setUpdatedCount(updateCount);
@@ -245,7 +329,7 @@ export default function EditExamPaperPage(){
 
       <div className="space-y-4">
         {questions.map((q, idx) => (
-          <div key={idx} className="border rounded p-3 space-y-3 bg-white">
+          <div key={q.question_id ?? `new-${idx}`} className="border rounded p-3 space-y-3 bg-white">
             <div className="font-semibold">Question {idx + 1}</div>
             <div>
               <label className="block text-sm mb-1">Question Text</label>
@@ -264,8 +348,9 @@ export default function EditExamPaperPage(){
               {q.options.map((opt, j) => (
                 <div key={j} className="flex items-center gap-2 border rounded px-3 py-2 bg-white">
                   <input
-                    type="checkbox"
+                    type="radio"
                     className="w-4 h-4"
+                    name={`question-${q.question_id ?? idx}-correct`}
                     checked={q.correctOption === j}
                     onChange={() => {
                       const next = [...questions];
