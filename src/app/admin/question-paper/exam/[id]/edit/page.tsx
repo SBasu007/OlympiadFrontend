@@ -146,10 +146,10 @@ export default function EditExamPaperPage(){
         form.append('question_text', q.text);
         form.append('options', JSON.stringify(q.options));
         if (typeof q.correctOption === 'number') {
-          const idx = q.correctOption;
-          const val = Array.isArray(q.options) && idx >= 0 && idx < q.options.length ? q.options[idx] : undefined;
+          const correctIdx = q.correctOption;
+          const val = Array.isArray(q.options) && correctIdx >= 0 && correctIdx < q.options.length ? q.options[correctIdx] : undefined;
           // Prefer sending the actual option string (matches backend storage model), fallback to index string
-          form.append('correct_option', typeof val === 'string' ? val : String(idx));
+          form.append('correct_option', typeof val === 'string' ? val : String(correctIdx));
         }
         
         // Only append file if a new one was selected
