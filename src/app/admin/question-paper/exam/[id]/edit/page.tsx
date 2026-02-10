@@ -11,6 +11,21 @@ type OriginalQuestion = { text: string; options: string[]; correctOption?: numbe
 
 type Exam = { exam_id: number; name: string };
 
+// Helper function to find the correct option index by exact string match
+const findCorrectOptionIndex = (correctValue: string | number, options: string[]): number | undefined => {
+  if (typeof correctValue === 'number') {
+    return correctValue;
+  }
+  
+  if (typeof correctValue === 'string') {
+    // Try exact match first (handles any format: decimals, fractions, special chars)
+    const exactMatch = options.findIndex(o => (o ?? '').trim() === correctValue.trim());
+    if (exactMatch >= 0) return exactMatch;
+  }
+  
+  return undefined;
+};
+
 export default function EditExamPaperPage(){
   const params = useParams();
   const id = params?.id as string;
@@ -51,19 +66,8 @@ export default function EditExamPaperPage(){
           // Determine correct option index. Backend now stores the correct option as the actual option string.
           // Support legacy numeric index too as fallback.
           let correctIndex: number | undefined = undefined;
-          if (typeof q.correct === 'string') {
-            // Try to match by option value first
-            const value = q.correct.trim();
-            const found = parsedOptions.findIndex(o => (o ?? '').trim() === value);
-            if (found >= 0) {
-              correctIndex = found;
-            } else {
-              // Fallback: numeric string index from legacy data
-              const n = parseInt(q.correct, 10);
-              if (!Number.isNaN(n)) correctIndex = n;
-            }
-          } else if (typeof q.correct === 'number') {
-            correctIndex = q.correct;
+          if (typeof q.correct === 'string' || typeof q.correct === 'number') {
+            correctIndex = findCorrectOptionIndex(q.correct, parsedOptions);
           }
 
           // Guard against out-of-bounds index
@@ -208,19 +212,8 @@ export default function EditExamPaperPage(){
 
           // Determine correct option index
           let correctIndex: number | undefined = undefined;
-          if (typeof q.correct === 'string') {
-            // Try to match by option value first
-            const value = q.correct.trim();
-            const found = parsedOptions.findIndex(o => (o ?? '').trim() === value);
-            if (found >= 0) {
-              correctIndex = found;
-            } else {
-              // Fallback: numeric string index from legacy data
-              const n = parseInt(q.correct, 10);
-              if (!Number.isNaN(n)) correctIndex = n;
-            }
-          } else if (typeof q.correct === 'number') {
-            correctIndex = q.correct;
+          if (typeof q.correct === 'string' || typeof q.correct === 'number') {
+            correctIndex = findCorrectOptionIndex(q.correct, parsedOptions);
           }
 
           // Guard against out-of-bounds index
