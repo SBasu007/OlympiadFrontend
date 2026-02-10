@@ -52,6 +52,22 @@ export default function ExamResultPage() {
     setLoading(false);
   }, [isAuthenticated, router, examId, resultId]);
 
+  // Prevent browser back navigation
+  useEffect(() => {
+    window.history.pushState({ preventBack: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      // Push state again to prevent going back to the quiz
+      window.history.pushState({ preventBack: true }, '');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   const handleDownloadCertificate = useCallback(async () => {
     if (!user?.user_id || !examId) {
       setCertificateError("Unable to generate certificate. Please try again.");

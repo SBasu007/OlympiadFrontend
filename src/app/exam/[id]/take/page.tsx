@@ -501,16 +501,18 @@ export default function TakeExamPage() {
                 {currentQuestion.options.map((option, index) => {
                   const isSelected = questionStatuses[currentQuestion.question_id]?.selectedOption === option;
                   const isLocked = questionStatuses[currentQuestion.question_id]?.locked;
+                  const isNA = option === 'NA';
+                  const isDisabled = isNA || isLocked;
                   return (
                     <button
                       key={index}
                       onClick={() => handleOptionSelect(option)}
-                      disabled={isLocked}
+                      disabled={isDisabled}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                         isSelected
                           ? 'border-blue-600 bg-blue-50 shadow-md'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                      } ${isLocked ? 'opacity-75 cursor-not-allowed' : ''}`}
+                      } ${isDisabled ? 'opacity-75 cursor-not-allowed bg-gray-100' : ''}`}
                     >
                       <div className="flex items-center gap-3">
                         <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-semibold ${
