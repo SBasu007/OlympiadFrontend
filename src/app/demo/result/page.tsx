@@ -1,9 +1,27 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 export default function DemoResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4">
+          <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl p-8">
+            <p className="text-sm font-semibold text-blue-700 mb-2">Demo Quiz Result</p>
+            <h1 className="text-3xl font-bold text-gray-900">Loading result...</h1>
+          </div>
+        </main>
+      }
+    >
+      <DemoResultContent />
+    </Suspense>
+  );
+}
+
+function DemoResultContent() {
   const searchParams = useSearchParams();
 
   const score = Number(searchParams.get("score") ?? 0);
