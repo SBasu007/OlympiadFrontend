@@ -165,11 +165,15 @@ const handleApplyClick = (examId: number) => {
                             {exam.description}
                           </p>
                         )}
-
+{exam.fees !== undefined && exam.fees !== null && exam.fees == 0 && (
+  <div>
+    <p className="text-md text-red-600 font-medium">Only students scoring above 90% in State Level are eligible for this exam.</p>
+  </div>
+            )}
                         {/* Details Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                           {/* Fees */}
-                          {exam.fees !== undefined && exam.fees !== null && (
+                          {exam.fees !== undefined && exam.fees !== null && exam.fees > 0 && (
                             <div className="flex items-center gap-2">
                               <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,22 +243,7 @@ const handleApplyClick = (examId: number) => {
                           </span>
                         </div>
 
-                        {/* Study Material Link */}
-                          {exam.study_mat_url && (
-                            <div className="pt-2">
-                              <a
-                                href={exam.study_mat_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition-colors text-sm"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                                <span>Download Study Material</span>
-                              </a>
-                            </div>
-                          )}
+                        
                       </div>
 
                       {/* Right Section - CTA Button */}

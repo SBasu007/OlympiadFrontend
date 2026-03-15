@@ -156,9 +156,9 @@ export default function Navbar() {
               <Image
                 src="/logo.jpg"
                 alt="Talent Search Olympiad Logo" 
-                width={150}
-                height={45}
-                className="h-10 w-auto"
+                width={300}
+                height={90}
+                className="h-12 w-auto"
               />
             </Link>
           </div>
@@ -286,9 +286,9 @@ export default function Navbar() {
               </div>
             )}
 
-            <Link href="/exams" className="text-sm hover:text-gray-300 transition-colors">
-              Exams
-            </Link>
+           <Link href="/gallery" className="text-sm hover:text-gray-300 transition-colors">
+              Gallery
+            </Link>   
             <Link href="/contact" className="text-sm hover:text-gray-300 transition-colors">
               Contact
             </Link>
@@ -500,11 +500,11 @@ export default function Navbar() {
             )}
 
             <Link
-              href="/exams"
+              href="/gallery"
               className="block px-4 py-2 rounded-lg hover:bg-white/10 transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Exams
+             Gallery
             </Link>
             <Link
               href="/contact"
