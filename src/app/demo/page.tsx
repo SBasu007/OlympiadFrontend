@@ -16,7 +16,7 @@ interface DemoQuestionStatus {
 	selectedOption: string | null;
 }
 
-const DEMO_DURATION_SECONDS = 1 * 60;
+const DEMO_DURATION_SECONDS = 7 * 60;
 
 const DEMO_QUESTIONS: DemoQuestion[] = [
 	{

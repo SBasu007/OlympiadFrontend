@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Talent Search Olympiad",
   description: "Olympiad exams",
+  icons: {
+    icon: "/logo.jpg", // make sure this file exists in /public
+  },
 };
 
 export default function RootLayout({
