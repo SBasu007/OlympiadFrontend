@@ -8,7 +8,9 @@ type GalleryImage = {
 
 const galleryImages: GalleryImage[] = [
 	{ src: "/gallery/g1.png", alt: "Gallery photo 1" },
-	{ src: "/gallery/g2.png", alt: "Gallery photo 2" }
+	{ src: "/gallery/g2.png", alt: "Gallery photo 2" },
+    { src: "/gallery/g3.png", alt: "Gallery photo 3" },
+
 ];
 
 export default function GalleryPage() {
@@ -41,10 +43,6 @@ export default function GalleryPage() {
 										sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
 										className="object-cover transition-transform duration-500 group-hover:scale-105"
 									/>
-								</div>
-								<div className="flex items-center justify-between px-3 py-2.5">
-									<p className="text-xs font-medium text-gray-600">{image.alt}</p>
-									<span className="h-2 w-2 rounded-full bg-orange-400" />
 								</div>
 							</article>
 						))}
