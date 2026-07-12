@@ -10,6 +10,7 @@ const galleryImages: GalleryImage[] = [
 	{ src: "/gallery/g1.png", alt: "Gallery photo 1" },
 	{ src: "/gallery/g2.png", alt: "Gallery photo 2" },
     { src: "/gallery/g3.png", alt: "Gallery photo 3" },
+	{ src: "/gallery/g4.png", alt: "Gallery photo 4" },
 
 ];
 
