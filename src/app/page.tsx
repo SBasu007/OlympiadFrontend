@@ -161,7 +161,7 @@ export default function Home() {
           }
         `}</style>
         <div className="marquee-text text-white font-semibold text-base md:text-sm">
-          Nation wide Talent Search Olympiad Examinations on Maths , Science , English ,General Knowledge, Computer , Essay , Abacus , Social Science State level will start from 1st July 2022
+          Nation wide Talent Search Olympiad Examinations on Maths , Science , English ,General Knowledge, Computer , Drawing , Abacus , Social Science State level will start from 1st July 2026
         </div>
       </div>
 
