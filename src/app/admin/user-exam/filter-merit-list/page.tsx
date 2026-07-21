@@ -8,6 +8,8 @@ interface Subcategory { subcategory_id: number; name: string; category_id: numbe
 interface Subject { subject_id: number; name: string; subcategory_id: number }
 interface Exam { exam_id: number; name: string; subject_id: number }
 interface MeritListResult {
+  user_id: string;
+  exam_id: number;
   user_name: string;
   email: string;
   contact: string;
@@ -275,6 +277,108 @@ export default function FilterMeritListPage() {
     }, 250);
   };
 
+  const handleDownloadUserAttempt = async (result: MeritListResult) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}admin/user-attempts/${result.user_id}?exam_id=${result.exam_id}`);
+      if (!res.ok) throw new Error("Failed to fetch user attempts");
+      const data = await res.json();
+      
+      if (!data || data.length === 0) {
+        alert("No attempt found for this user.");
+        return;
+      }
+
+      const attempt = data[0];
+      const answersObj = typeof attempt.answers === 'string' ? JSON.parse(attempt.answers) : attempt.answers;
+
+      const printWindow = window.open("", "", "width=800,height=600");
+      if (!printWindow) {
+        alert("Please allow popups to print");
+        return;
+      }
+
+      const subjectName = subjects.find(s => String(s.subject_id) === String(selectedSubject))?.name || "N/A";
+      const categoryName = categories.find(c => String(c.category_id) === String(selectedCategory))?.name || "N/A";
+      const subcategoryName = subcategories.find(s => String(s.subcategory_id) === String(selectedSubcategory))?.name || "N/A";
+      
+      let rowsHtml = "";
+      let index = 1;
+      for (const [key, val] of Object.entries(answersObj)) {
+        const ans = val as any;
+        const timeStr = typeof ans.savedAt === 'number' 
+          ? `${Math.floor(ans.savedAt / 60)}m ${ans.savedAt % 60}s` 
+          : (ans.savedAt || "");
+          
+        rowsHtml += `
+          <tr>
+            <td style="text-align: center;">${index++}</td>
+            <td>${ans.question || ""}</td>
+            <td style="text-align: center;">${ans.selectedOption || ""}</td>
+            <td style="text-align: center;">${timeStr}</td>
+            <td style="color: ${ans.correct ? 'green' : 'red'}; font-weight: bold; text-align: center;">
+              ${ans.correct ? 'Correct' : 'Incorrect'}
+            </td>
+          </tr>
+        `;
+      }
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${result.user_name} - Attempt Details</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h2, h3 { text-align: center; margin: 10px 0; }
+            .details { margin-bottom: 20px; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 13px; }
+            th { background-color: #f3f4f6; font-weight: bold; text-align: center; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <h2>${selectedExamName} - Attempt Details</h2>
+          <div class="details">
+            <p><strong>Name:</strong> ${result.user_name}</p>
+            <p><strong>Category:</strong> ${categoryName}</p>
+            <p><strong>Class/Subcategory:</strong> ${subcategoryName}</p>
+            <p><strong>Subject:</strong> ${subjectName}</p>
+            <p><strong>Score:</strong> ${result.score} / ${result.total_marks}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 60px;">Sl No.</th>
+                <th>Question</th>
+                <th style="width: 120px;">Selected Option</th>
+                <th style="width: 90px;">Saved At</th>
+                <th style="width: 100px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+
+    } catch (err: any) {
+      alert(err.message || "Error fetching attempt details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto text-gray-900">
       {/* <div className="bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg p-6 text-white mb-6">
@@ -426,6 +530,7 @@ export default function FilterMeritListPage() {
                       <th className="px-4 py-3 text-left text-xs font-semibold">Exam Marks</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold">Obtained Marks</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold">Obtained Percentage</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -437,6 +542,14 @@ export default function FilterMeritListPage() {
                         <td className="px-4 py-3 text-xs">{result.total_marks}</td>
                         <td className="px-4 py-3 text-xs">{result.score}</td>
                         <td className="px-4 py-3 text-xs font-semibold">{result.percentage.toFixed(2)}%</td>
+                        <td className="px-4 py-3 text-xs">
+                          <button
+                            onClick={() => handleDownloadUserAttempt(result)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Download Attempt
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
