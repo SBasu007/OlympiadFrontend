@@ -302,6 +302,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     }`} >
                     Filter Merit List
                   </Link>
+                  <Link
+                    href="/admin/user-exam/filter-merit-list-by-school"
+                    className={`block rounded px-3 py-2 text-sm font-medium transition-colors ${
+                      pathname === '/admin/user-exam/filter-merit-list-by-school' ? "bg-pink-500 text-white" : "hover:bg-gray-200 text-gray-600"
+                    }`} >
+                    Filter Merit List by School
+                  </Link>
                 </div>
               )}
             
