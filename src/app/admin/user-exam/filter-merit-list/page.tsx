@@ -13,6 +13,7 @@ interface MeritListResult {
   user_name: string;
   email: string;
   contact: string;
+  school_name: string;
   total_marks: number;  
   score: number;
   percentage: number;
@@ -35,6 +36,7 @@ export default function FilterMeritListPage() {
   const [selectedBracket, setSelectedBracket] = useState<PercentageBracket | "">("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [schoolNameSearch, setSchoolNameSearch] = useState<string>("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +207,16 @@ export default function FilterMeritListPage() {
   const examOptions = useMemo(() => exams.map(ex => (
     <option key={ex.exam_id} value={ex.exam_id}>{ex.name}</option>
   )), [exams]);
+
+  const filteredResults = useMemo(() => {
+    const searchTerm = schoolNameSearch.trim().toLowerCase();
+
+    if (!searchTerm) return results;
+
+    return results.filter(result =>
+      String(result.school_name ?? "").toLowerCase().includes(searchTerm)
+    );
+  }, [results, schoolNameSearch]);
 
   const handlePrintPDF = () => {
     if (!tableRef.current) return;
@@ -450,7 +462,20 @@ export default function FilterMeritListPage() {
         <div className="space-y-4">
           <h2 className="text-base font-semibold text-gray-800">Apply Filters</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* School Name Search */}
+            <div className="min-w-0">
+              <label htmlFor="school-name-search" className="block text-xs font-medium mb-1">School Name</label>
+              <input
+                id="school-name-search"
+                type="search"
+                className="w-full border rounded px-3 py-2 bg-white text-gray-900 text-xs"
+                placeholder="Search school name"
+                value={schoolNameSearch}
+                onChange={(e) => setSchoolNameSearch(e.target.value)}
+              />
+            </div>
+
             {/* Percentage Bracket */}
             <div className="min-w-0">
               <label className="block text-xs font-medium mb-1">Percentage Bracket</label>
@@ -503,9 +528,9 @@ export default function FilterMeritListPage() {
       {/* Results Table */}
       {hasSearched && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {results.length === 0 ? (
+          {filteredResults.length === 0 ? (
             <div className="p-6 text-center text-xs text-gray-500">
-              No results found for the selected filters.
+              No results found for the selected filters or school name search.
             </div>
           ) : (
             <>
@@ -525,6 +550,7 @@ export default function FilterMeritListPage() {
                   <thead className="bg-gray-100 border-b">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold">User Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold">School Name</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold">Email</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold">Contact</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold">Exam Marks</th>
@@ -534,9 +560,10 @@ export default function FilterMeritListPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {results.map((result, idx) => (
+                    {filteredResults.map((result, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-xs">{result.user_name}</td>
+                        <td className="px-4 py-3 text-xs">{result.school_name || "N/A"}</td>
                         <td className="px-4 py-3 text-xs">{result.email}</td>
                         <td className="px-4 py-3 text-xs">{result.contact}</td>
                         <td className="px-4 py-3 text-xs">{result.total_marks}</td>
@@ -558,7 +585,7 @@ export default function FilterMeritListPage() {
             </>
           )}
           <div className="px-6 py-4 bg-gray-50 border-t text-xs text-gray-600">
-            Total Records: <span className="font-semibold">{results.length}</span>
+            Total Records: <span className="font-semibold">{filteredResults.length}</span>
           </div>
         </div>
       )}
