@@ -18,6 +18,7 @@ interface MeritListResult {
 
 export default function FilterMeritListBySchoolPage() {
   const [schoolName, setSchoolName] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [results, setResults] = useState<MeritListResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,10 @@ export default function FilterMeritListBySchoolPage() {
     try {
       setLoading(true);
       const query = new URLSearchParams({ institute });
+      if (categoryId) {
+        query.set("category_id", categoryId);
+      }
+
       const res = await fetch(`${API_BASE}admin/merit-list/institute?${query.toString()}`);
       if (!res.ok) {
         const response = await res.json();
@@ -186,6 +191,19 @@ export default function FilterMeritListBySchoolPage() {
             value={schoolName}
             onChange={(event) => setSchoolName(event.target.value)}
           />
+        </div>
+        <div className="max-w-md">
+          <label htmlFor="exam-category" className="block text-xs font-medium mb-1">Exam Category</label>
+          <select
+            id="exam-category"
+            className="w-full border rounded px-3 py-2 bg-white text-gray-900 text-xs"
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            <option value="">All Exam Categories</option>
+            <option value="5">Talent Search Olympiad State Level</option>
+            <option value="6">Talent Search Olympiad National Level</option>
+          </select>
         </div>
         <button
           type="submit"
