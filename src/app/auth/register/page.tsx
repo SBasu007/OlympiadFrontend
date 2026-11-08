@@ -38,7 +38,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 8) {
+    if (formData.password.length < 4) {
       setError("Password must be at least 8 characters long");
       return;
     }
