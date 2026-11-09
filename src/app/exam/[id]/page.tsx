@@ -358,36 +358,41 @@ export default function ExamDetailPage() {
     <div className="border-t border-gray-200"></div>
 
     {/* Rule 2 */}
+<div>
+  <div className="flex items-start gap-3">
+    <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-orange-100 text-orange-700 font-bold">
+      2
+    </span>
+
     <div>
-      <div className="flex items-start gap-3">
-        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-orange-100 text-orange-700 font-bold">
-          2
-        </span>
+      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
+        Re-Exam Facility
+      </h3>
 
-        <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
-            Re-Exam Facility
-          </h3>
+      <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+        If your exam closes due to a technical problem before you click the{" "}
+        <span className="font-bold text-gray-900">
+          Finish Exam
+        </span>{" "}
+        button, you can request a re-exam. It will resume from the questions
+        you left unanswered.
+      </p>
 
-          <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-            If your exam closes without clicking the{" "}
-            <span className="font-bold text-gray-900">
-              Finish Exam
-            </span>{" "}
-            button, you will be entitled to a re-exam that resumes from the
-            questions you left unanswered.
-          </p>
+      <p className="text-sm sm:text-base text-gray-700 leading-relaxed mt-3">
+        To apply, click the{" "}
+        <span className="inline-block font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">
+          Request Re-exam
+        </span>{" "}
+        button.
+      </p>
 
-          <p className="text-sm sm:text-base text-gray-700 leading-relaxed mt-3">
-            To apply for a re-exam, click on the{" "}
-            <span className="inline-block font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">
-              Request Re-exam
-            </span>{" "}
-            button.
-          </p>
-        </div>
-      </div>
+      <p className="text-sm sm:text-base text-red-600 font-semibold leading-relaxed mt-3">
+        Note: Clicking the Finish Exam button will submit your exam. You
+        cannot request a re-exam after submitting it.
+      </p>
     </div>
+  </div>
+</div>
 
   </div>
 </div>
