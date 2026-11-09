@@ -306,6 +306,94 @@ export default function ExamDetailPage() {
   </div>
 )}
 
+
+{/* Exam Instructions Section */}
+<div className="mt-6 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+
+  {/* Section Header */}
+  <div className="px-5 sm:px-8 py-5 bg-blue-50 border-b border-blue-100">
+    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+      Important Exam Instructions
+    </h2>
+    <p className="text-sm text-gray-600 mt-1">
+      Please read the following instructions carefully before appearing for the examination.
+    </p>
+  </div>
+
+  <div className="p-5 sm:p-8 space-y-7">
+
+    {/* Rule 1 */}
+    <div>
+      <div className="flex items-start gap-3 mb-4">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-700 font-bold">
+          1
+        </span>
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
+            Save Your Answers Properly
+          </h3>
+          <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+            Always press the{" "}
+            <span className="font-bold text-green-700">
+              Save & Next
+            </span>{" "}
+            button to save your selected answer for the current question.
+            <span className="font-bold text-red-600">
+              {" "}Clicking Next will NOT save your answer.
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Instruction Image */}
+      <div className="ml-0 sm:ml-11 mt-4">
+        <img
+          src="/save-next-instruction.png"
+          alt="Illustration showing the Save & Next button"
+          className="w-full h-auto max-w-full object-contain rounded-lg border border-gray-200"
+        />
+      </div>
+    </div>
+
+    <div className="border-t border-gray-200"></div>
+
+    {/* Rule 2 */}
+    <div>
+      <div className="flex items-start gap-3">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-orange-100 text-orange-700 font-bold">
+          2
+        </span>
+
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
+            Re-Exam Facility
+          </h3>
+
+          <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+            If your exam closes without clicking the{" "}
+            <span className="font-bold text-gray-900">
+              Finish Exam
+            </span>{" "}
+            button, you will be entitled to a re-exam that resumes from the
+            questions you left unanswered.
+          </p>
+
+          <p className="text-sm sm:text-base text-gray-700 leading-relaxed mt-3">
+            To apply for a re-exam, click on the{" "}
+            <span className="inline-block font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">
+              Request Re-exam
+            </span>{" "}
+            button.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
             {/* Certificate Error Message */}
             {certificateError && (
               <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
