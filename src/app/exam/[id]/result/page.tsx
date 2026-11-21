@@ -76,7 +76,8 @@ export default function ExamResultPage() {
 
     try {
       setCertificateError(null);
-      const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/certificate/${user.user_id}/${examId}`;
+      // It was student/certificate/...
+      const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/scorecard/${user.user_id}/${examId}`;
       
       const response = await fetch(certificateUrl);
 
@@ -131,10 +132,12 @@ export default function ExamResultPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
         <div className="mb-8">
           <p className="text-center text-gray-700 text-lg">
-            Exam is Over. Thank you for Participating in the <span className="font-bold text-blue-600">TALENT SEARCH OLYMPIAD</span>.<br/>
-            All participants will get a <span className="font-semibold">Performance Report Cum Certificate in PDF</span> (take a print out).<br/>
+            Exam is Over. Thank you for Participating in the <span className="font-bold text-blue-600">NATIONAL TALENT SEARCH OLYMPIAD</span>.<br/>
+            {/* All participants will get a <span className="font-semibold">Performance Report Cum Certificate in PDF</span> (take a print out).<br/>
             Candidate Scoring 50% marks will get a Medal.<br/>
-            Candidate Scoring 90% marks will be selected for NATIONAL LEVEL COMPETITION.
+            Candidate Scoring 90% marks will be selected for NATIONAL LEVEL COMPETITION. */}
+            Candidate Scoring 90 - 94% marks will get a Certificate and Runner Award.<br/>
+            Candidate Scoring 95 - 100% marks will get a Certificate and the Winner Award.
           </p>
         </div>
 
@@ -182,7 +185,7 @@ export default function ExamResultPage() {
               </div>
 
               {/* Achievement Badge */}
-              {parseFloat(result.percentage) >= 90 && (
+              {/* {parseFloat(result.percentage) >= 90 && (
                 <div className="bg-purple-100 border-2 border-purple-600 rounded-lg p-2 text-center">
                   <p className="text-purple-900 font-bold text-sm">🏆 NATIONAL LEVEL QUALIFICATION!</p>
                 </div>
@@ -191,7 +194,7 @@ export default function ExamResultPage() {
                 <div className="bg-green-100 border-2 border-green-600 rounded-lg p-2 text-center">
                   <p className="text-green-900 font-bold text-sm">🏅 MEDAL WINNER!</p>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 
@@ -239,11 +242,12 @@ export default function ExamResultPage() {
               </button>
             </div>
           )}
+          {/* The text will be Download Certificate */}
           <button
             onClick={handleDownloadCertificate}
             className="px-8 py-3 bg-[#ff8a00] text-white text-lg font-semibold rounded-lg hover:bg-[#e67600] transition-colors shadow-lg mr-3"
           >
-            Download Certificate
+            Download Scorecard
           </button>
           <button
             onClick={() => router.push('/')}
