@@ -46,6 +46,7 @@ export default function ExamDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showReExamModal, setShowReExamModal] = useState(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const [certificateLoading, setCertificateLoading] = useState(false);
 
   useEffect(() => {
     const fetchExamDetails = async () => {
@@ -129,6 +130,9 @@ export default function ExamDetailPage() {
       return;
     }
 
+    if (certificateLoading) return;
+
+    setCertificateLoading(true);
     try {
       setCertificateError(null);
       const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/scorecard/${user.user_id}/${examId}`;
@@ -148,6 +152,8 @@ export default function ExamDetailPage() {
     } catch (error) {
       console.error("Certificate error:", error);
       setCertificateError("An error occurred while generating the certificate");
+    } finally {
+      setCertificateLoading(false);
     }
   };
 
@@ -433,9 +439,17 @@ export default function ExamDetailPage() {
                 // Show certificate when exam has been submitted (regardless of expiration)
                 <button
                   onClick={handleDownloadCertificate}
-                  className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  disabled={certificateLoading}
+                  className="w-full px-6 py-3 bg-[#ff8a00] hover:bg-[#e67d00] disabled:bg-[#ffb45c] disabled:cursor-not-allowed disabled:transform-none text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                  Download Certificate
+                  {certificateLoading ? (
+                    <>
+                      <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
+                      Generating Certificate...
+                    </>
+                  ) : (
+                    'Download Certificate'
+                  )}
                 </button>
               ) : expired ? (
                 <button
