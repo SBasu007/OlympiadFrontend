@@ -1,7 +1,7 @@
 "use client";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { apiFetch } from "@/lib/api";
 
@@ -44,6 +44,7 @@ export default function TakeExamPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
+  const submittedRef = useRef(false);
 
   // Fetch exam details and questions
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function TakeExamPage() {
 
     const fetchData = async () => {
       try {
+        submittedRef.current = false;
         setLoading(true);
 
         // Fetch exam details
@@ -137,6 +139,8 @@ export default function TakeExamPage() {
       return;
     }
 
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     setSubmitting(true);
 
     try {
@@ -191,6 +195,7 @@ export default function TakeExamPage() {
       router.push(`/exam/${examId}/result?result_id=${result.result_id}`);
 
     } catch (error) {
+      submittedRef.current = false;
       console.error("Error submitting exam:", error);
       alert("Failed to submit exam. Please try again.");
     } finally {
@@ -216,17 +221,28 @@ export default function TakeExamPage() {
     return () => clearInterval(timer);
   }, [timeRemaining, loading]);
 
+  // Submit automatically once the countdown reaches zero
+  useEffect(() => {
+    if (!loading && timeRemaining <= 0) {
+      setAutoSubmit(true);
+    }
+  }, [loading, timeRemaining]);
+
+  useEffect(() => {
+    if (autoSubmit) {
+      handleSubmit(true);
+    }
+  }, [autoSubmit, handleSubmit]);
+
   // Handle page unload/close - auto-submit exam
   useEffect(() => {
-    let hasSubmitted = false; // Flag to prevent duplicate submissions
-
     const submitExamOnClose = () => {
-      if (hasSubmitted) {
+      if (submittedRef.current) {
         console.log('[⚠️ Already submitted, skipping duplicate]');
         return;
       }
-      
-      hasSubmitted = true;
+
+      submittedRef.current = true;
 
       // Prepare answers
       const answers: Record<number, { question: string; selectedOption: string; savedAt: number | null }> = {};
