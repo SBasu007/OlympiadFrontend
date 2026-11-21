@@ -131,7 +131,7 @@ export default function ExamDetailPage() {
 
     try {
       setCertificateError(null);
-      const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/certificate/${user.user_id}/${examId}`;
+      const certificateUrl = `${process.env.NEXT_PUBLIC_API_BASE}student/scorecard/${user.user_id}/${examId}`;
       
       const response = await fetch(certificateUrl);
 
