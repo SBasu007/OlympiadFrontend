@@ -133,7 +133,7 @@ export default function ExamResultPage() {
           <p className="text-center text-gray-700 text-lg">
             Exam is Over. Thank you for Participating in the <span className="font-bold text-blue-600">TALENT SEARCH OLYMPIAD</span>.<br/>
             All participants will get a <span className="font-semibold">Performance Report Cum Certificate in PDF</span> (take a print out).<br/>
-            Candidate Scoring 80% marks will get a Medal.<br/>
+            Candidate Scoring 50% marks will get a Medal.<br/>
             Candidate Scoring 90% marks will be selected for NATIONAL LEVEL COMPETITION.
           </p>
         </div>

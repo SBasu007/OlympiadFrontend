@@ -161,7 +161,7 @@ export default function TakeExamPage() {
       const timeTaken = exam ? (exam.duration * 60) - timeRemaining : 0;
 
       // Determine submission status
-      const submissionStatus = autoSubmit ? 'ended' : 'submitted';
+      const submissionStatus = 'submitted';
 
       // Submit to backend
       const result = await apiFetch<{
