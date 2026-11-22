@@ -30,6 +30,7 @@ export default function ExamResultPage() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [loading, setLoading] = useState(true);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const [certificateLoading, setCertificateLoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -74,6 +75,9 @@ export default function ExamResultPage() {
       return;
     }
 
+    if (certificateLoading) return;
+
+    setCertificateLoading(true);
     try {
       setCertificateError(null);
       // It was student/certificate/...
@@ -94,8 +98,10 @@ export default function ExamResultPage() {
     } catch (error) {
       console.error("Certificate error:", error);
       setCertificateError("An error occurred while generating the certificate");
+    } finally {
+      setCertificateLoading(false);
     }
-  }, [user?.user_id, examId]);
+  }, [user?.user_id, examId, certificateLoading]);
 
   if (loading) {
     return (
@@ -245,9 +251,17 @@ export default function ExamResultPage() {
           {/* The text will be Download Certificate */}
           <button
             onClick={handleDownloadCertificate}
-            className="px-8 py-3 bg-[#ff8a00] text-white text-lg font-semibold rounded-lg hover:bg-[#e67600] transition-colors shadow-lg mr-3"
+            disabled={certificateLoading}
+            className="px-8 py-3 bg-[#ff8a00] text-white text-lg font-semibold rounded-lg hover:bg-[#e67600] disabled:bg-[#ffb45c] disabled:cursor-not-allowed transition-colors shadow-lg mr-3"
           >
-            Download Scorecard
+            {certificateLoading ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></span>
+                Generating Scorecard...
+              </span>
+            ) : (
+              'Download Scorecard'
+            )}
           </button>
           <button
             onClick={() => router.push('/')}
